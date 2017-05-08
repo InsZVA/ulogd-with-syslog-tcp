@@ -32,6 +32,7 @@
 #include <sys/types.h>
 #include <netdb.h>
 #include <time.h>
+#include <syslog.h>
 
 #ifndef SYSLOG_FACILITY_DEFAULT
 #define SYSLOG_FACILITY_DEFAULT	"LOG_KERN"
