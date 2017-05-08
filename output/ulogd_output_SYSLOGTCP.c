@@ -29,6 +29,8 @@
 #include <errno.h>
 #include <ulogd/ulogd.h>
 #include <ulogd/conffile.h>
+#include <sys/socket.h>
+#include <sys/types.h>
 
 #ifndef SYSLOG_FACILITY_DEFAULT
 #define SYSLOG_FACILITY_DEFAULT	"LOG_KERN"
@@ -43,7 +45,7 @@
 #endif
 
 #ifndef SYSLOG_PORT_DEFAULT
-#define SYSLOG_PORT_DEFAULT 514
+#define SYSLOG_PORT_DEFAULT "514"
 #endif
 
 static struct ulogd_key syslogtcp_inp[] = {
@@ -76,9 +78,9 @@ static struct config_keyset syslogtcp_kset = {
 		},
 		{
 		.key = "port",
-		.type = CONFIG_TYPE_INT,
+		.type = CONFIG_TYPE_STRING,
 		.options = CONFIG_OPT_NONE,
-		.u = { .value = SYSLOG_PORT_DEFAULT }
+		.u = { .string = SYSLOG_PORT_DEFAULT }
 		},
 	},
 };
@@ -86,8 +88,9 @@ static struct config_keyset syslogtcp_kset = {
 struct syslogtcp_instance {
 	int syslog_level;
 	int syslog_facility;
-	uint32_t host;
-	uint16_t dport;
+	char* host;
+	char* port;
+	int sfd;
 };
 
 static int _output_syslogtcp(struct ulogd_pluginstance *upi)
@@ -95,9 +98,39 @@ static int _output_syslogtcp(struct ulogd_pluginstance *upi)
 	struct syslogtcp_instance *li = (struct syslogtcp_instance *) &upi->private;
 	struct ulogd_key *res = upi->input.keys;
 
-	if (res[0].u.source->flags & ULOGD_RETF_VALID)
-		syslog(li->syslog_level | li->syslog_facility, "%s",
+	// TODO: memory?
+	char buffer[1024];
+
+	if (res[0].u.source->flags & ULOGD_RETF_VALID) {
+		char *timestr;
+		char *tmp;
+		time_t now;
+
+		if (res[1].u.source && (res[1].u.source->flags & ULOGD_RETF_VALID))
+			now = (time_t) res[1].u.source->u.value.ui32;
+		else
+			now = time(NULL);
+
+		timestr = ctime(&now) + 4;
+		if ((tmp = strchr(timestr, '\n')))
+			*tmp = '\0';
+
+		int msglen = snprintf(buffer, "%.15s %s %s", timestr, hostname,
 				(char *) res[0].u.source->u.value.ptr);
+
+		if (msglen == -1) {
+			ulogd_log(ULOGD_ERROR, "Could not create message\n");
+			return ULOGD_IRET_ERR;
+		}
+
+		int ret = send(li->sfd, buffer, msglen, MSG_NOSIGNAL);
+		if (ret != msglen) {
+			ulogd_log(ULOGD_ERROR, "Failure sending message\n");
+			if (ret == -1) {
+				return _connect_graphite(upi);
+			}
+		}
+	}
 
 	return ULOGD_IRET_OK;
 }
@@ -114,6 +147,8 @@ static int syslogtcp_configure(struct ulogd_pluginstance *pi,
 
 	facility = pi->config_kset->ces[0].u.string;
 	level = pi->config_kset->ces[1].u.string;
+	li->host = pi->config_kset->ces[2].u.string;
+	li->port = pi->config_kset->ces[3].u.string;
 
 	if (!strcmp(facility, "LOG_DAEMON"))
 		syslog_facility = LOG_DAEMON;
@@ -173,14 +208,50 @@ static int syslogtcp_configure(struct ulogd_pluginstance *pi,
 
 static int syslogtcp_fini(struct ulogd_pluginstance *pi)
 {
-	closelog();
+	struct syslogtcp_instance *li = (struct syslogtcp_instance *) &pi->private;
+	if (li->sfd != INVALID_SOCKET)
+		close(li->sfd);
 
 	return 0;
 }
 
 static int syslogtcp_start(struct ulogd_pluginstance *pi)
 {
-	openlog("ulogd_tcp", LOG_NDELAY|LOG_PID, LOG_DAEMON);
+	struct syslogtcp_instance *li = (struct syslogtcp_instance *) &pi->private;
+	struct addrinfo hints;
+    struct addrinfo *result, *rp;
+	int s;
+
+	li->sfd = socket(AF_INET, SOCK_STREAM, 0);
+	memset(&hints, 0, sizeof(struct addrinfo));
+    hints.ai_family = AF_UNSPEC;   
+    hints.ai_socktype = SOCK_STREAM;
+    hints.ai_flags = 0;
+    hints.ai_protocol = 0;
+
+	s = getaddrinfo(li->host, li->port, &hints, &result);
+    if (s != 0) {
+       ulogd_log(ULOGD_FATAL, "getaddrinfo: %s\n", gai_strerror(s));
+       return -EINVAL;
+    }
+	freeaddrinfo(result);
+
+    for (rp = result; rp != NULL; rp = rp->ai_next) {
+       li->sfd = socket(rp->ai_family, rp->ai_socktype,
+                    rp->ai_protocol);
+       if (li->sfd == -1)
+           continue;
+
+       if (connect(li->sfd, rp->ai_addr, rp->ai_addrlen) != -1)
+           break;
+
+       close(li->sfd);
+    }
+
+    if (rp == NULL) {
+       ulogd_log(ULOGD_FATAL, "Could not connect\n");
+       return -EINVAL;
+    }
 
 	return 0;
 }
