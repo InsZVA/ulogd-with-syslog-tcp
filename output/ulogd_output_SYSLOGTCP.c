@@ -42,7 +42,7 @@
 #define SYSLOG_HOST_DEFAULT "127.0.0.1"
 #endif
 
-#ifdef SYSLOG_PORT_DEFAULT
+#ifndef SYSLOG_PORT_DEFAULT
 #define SYSLOG_PORT_DEFAULT 514
 #endif
 
