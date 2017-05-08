@@ -120,8 +120,7 @@ static int _output_syslogtcp(struct ulogd_pluginstance *upi)
 			ulogd_log(ULOGD_ERROR, "Could not create message\n");
 			return ULOGD_IRET_ERR;
 		}
-		ulogd_log(ULOGD_DEBUG, buffer);
-
+		
 		int ret = send(li->sfd, buffer, msglen, MSG_NOSIGNAL);
 		if (ret != msglen) {
 			ulogd_log(ULOGD_ERROR, "Failure sending message\n");
