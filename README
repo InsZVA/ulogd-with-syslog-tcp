@@ -1,3 +1,16 @@
+This repo is cloned by netfilter/ulogd. I cloned this project and add a new output module to it.
+Its name is "SYSLOGTCP" and its config is very like previous "SYSLOG". Below is an example:
+
+[sys1]
+facility=LOG_LOCAL3
+host="192.168.29.246"
+port="514"
+
+
+***     Added by InsZVA@2017-0508     ***
+=====================================================================================================
+
+
 Userspace logging daemon for netfilter/iptables
 
 Project Homepage: http://www.gnumonks.org/projects/ulogd
