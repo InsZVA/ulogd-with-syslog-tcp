@@ -7,7 +7,7 @@ SUBDIRS= pcap mysql pgsql sqlite3 dbi
 pkglib_LTLIBRARIES = ulogd_output_LOGEMU.la ulogd_output_SYSLOG.la \
 			 ulogd_output_OPRINT.la ulogd_output_GPRINT.la \
 			 ulogd_output_NACCT.la ulogd_output_XML.la \
-			 ulogd_output_GRAPHITE.la
+			 ulogd_output_GRAPHITE.la ulogd_output_SYSLOGTCP.la
 
 if HAVE_JANSSON
 pkglib_LTLIBRARIES += ulogd_output_JSON.la
