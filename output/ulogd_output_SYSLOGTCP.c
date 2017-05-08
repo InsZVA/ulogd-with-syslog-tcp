@@ -108,6 +108,7 @@ static int _output_syslogtcp(struct ulogd_pluginstance *upi)
 		char *tmp;
 		time_t now;
 
+		ulogd_log(LOG_DEBUG, "before res[1]...\n");
 		if (res[1].u.source && (res[1].u.source->flags & ULOGD_RETF_VALID))
 			now = (time_t) res[1].u.source->u.value.ui32;
 		else
@@ -116,7 +117,7 @@ static int _output_syslogtcp(struct ulogd_pluginstance *upi)
 		timestr = ctime(&now) + 4;
 		if ((tmp = strchr(timestr, '\n')))
 			*tmp = '\0';
-
+        ulogd_log(LOG_DEBUG, "before sprintf\n");
 		int msglen = sprintf(buffer, "%.15s %s %s", timestr, "ulogd2",
 				(char *) res[0].u.source->u.value.ptr);
 
