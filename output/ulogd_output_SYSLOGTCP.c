@@ -75,10 +75,10 @@ static struct config_keyset syslogtcp_kset = {
 		.u = { .string = SYSLOG_HOST_DEFAULT }
 		},
 		{
-		.port = "port",
+		.key = "port",
 		.type = CONFIG_TYPE_INT,
 		.options = CONFIG_OPT_NONE,
-		.u - { .value = SYSLOG_PORT_DEFAULT }
+		.u = { .value = SYSLOG_PORT_DEFAULT }
 		},
 	},
 };
@@ -92,7 +92,7 @@ struct syslogtcp_instance {
 
 static int _output_syslogtcp(struct ulogd_pluginstance *upi)
 {
-	struct syslog_instance *li = (struct syslog_instance *) &upi->private;
+	struct syslogtcp_instance *li = (struct syslogtcp_instance *) &upi->private;
 	struct ulogd_key *res = upi->input.keys;
 
 	if (res[0].u.source->flags & ULOGD_RETF_VALID)
@@ -107,7 +107,7 @@ static int syslogtcp_configure(struct ulogd_pluginstance *pi,
 {
 	int syslog_facility, syslog_level;
 	char *facility, *level;
-	struct syslog_instance *li = (struct syslog_instance *) &pi->private;
+	struct syslogtcp_instance *li = (struct syslogtcp_instance *) &pi->private;
 
 	/* FIXME: error handling */
 	config_parse_file(pi->id, pi->config_kset);
