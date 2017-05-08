@@ -116,7 +116,7 @@ static int _output_syslogtcp(struct ulogd_pluginstance *upi)
 		if ((tmp = strchr(timestr, '\n')))
 			*tmp = '\0';
 
-		int msglen = sprintf(buffer, "%.15s %s %s", timestr, hostname,
+		int msglen = sprintf(buffer, "%.15s %s %s", timestr, "ulog2",
 				(char *) res[0].u.source->u.value.ptr);
 
 		if (msglen == -1) {
@@ -128,7 +128,7 @@ static int _output_syslogtcp(struct ulogd_pluginstance *upi)
 		if (ret != msglen) {
 			ulogd_log(ULOGD_ERROR, "Failure sending message\n");
 			if (ret == -1) {
-				return _connect_graphite(upi);
+				return ULOGD_IRET_ERR;
 			}
 		}
 	}
