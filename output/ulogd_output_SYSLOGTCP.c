@@ -28,11 +28,11 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <errno.h>
-#include <ulogd/ulogd.h>
-#include <ulogd/conffile.h>
 #include <netdb.h>
 #include <time.h>
 #include <syslog.h>
+#include <ulogd/ulogd.h>
+#include <ulogd/conffile.h>
 
 #ifndef SYSLOG_FACILITY_DEFAULT
 #define SYSLOG_FACILITY_DEFAULT	"LOG_KERN"
