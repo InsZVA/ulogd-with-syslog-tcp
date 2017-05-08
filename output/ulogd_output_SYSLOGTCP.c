@@ -25,12 +25,13 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
-#include <syslog.h>
 #include <errno.h>
 #include <ulogd/ulogd.h>
 #include <ulogd/conffile.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <netdb.h>
+#include <time.h>
 
 #ifndef SYSLOG_FACILITY_DEFAULT
 #define SYSLOG_FACILITY_DEFAULT	"LOG_KERN"
@@ -115,7 +116,7 @@ static int _output_syslogtcp(struct ulogd_pluginstance *upi)
 		if ((tmp = strchr(timestr, '\n')))
 			*tmp = '\0';
 
-		int msglen = snprintf(buffer, "%.15s %s %s", timestr, hostname,
+		int msglen = sprintf(buffer, "%.15s %s %s", timestr, hostname,
 				(char *) res[0].u.source->u.value.ptr);
 
 		if (msglen == -1) {
@@ -209,7 +210,7 @@ static int syslogtcp_configure(struct ulogd_pluginstance *pi,
 static int syslogtcp_fini(struct ulogd_pluginstance *pi)
 {
 	struct syslogtcp_instance *li = (struct syslogtcp_instance *) &pi->private;
-	if (li->sfd != INVALID_SOCKET)
+	if (li->sfd != -1)
 		close(li->sfd);
 
 	return 0;
