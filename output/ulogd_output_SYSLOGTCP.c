@@ -236,7 +236,6 @@ static int syslogtcp_start(struct ulogd_pluginstance *pi)
        ulogd_log(ULOGD_FATAL, "getaddrinfo: %s\n", gai_strerror(s));
        return -EINVAL;
     }
-	freeaddrinfo(result);
 
     for (rp = result; rp != NULL; rp = rp->ai_next) {
        li->sfd = socket(rp->ai_family, rp->ai_socktype,
@@ -249,6 +248,7 @@ static int syslogtcp_start(struct ulogd_pluginstance *pi)
 
        close(li->sfd);
     }
+	freeaddrinfo(result);
 
     if (rp == NULL) {
        ulogd_log(ULOGD_FATAL, "Could not connect\n");
