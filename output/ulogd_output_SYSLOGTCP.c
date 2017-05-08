@@ -25,11 +25,11 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <sys/socket.h>
+#include <sys/types.h>
 #include <errno.h>
 #include <ulogd/ulogd.h>
 #include <ulogd/conffile.h>
-#include <sys/socket.h>
-#include <sys/types.h>
 #include <netdb.h>
 #include <time.h>
 #include <syslog.h>
@@ -117,7 +117,7 @@ static int _output_syslogtcp(struct ulogd_pluginstance *upi)
 		if ((tmp = strchr(timestr, '\n')))
 			*tmp = '\0';
 
-		int msglen = sprintf(buffer, "%.15s %s %s", timestr, "ulog2",
+		int msglen = sprintf(buffer, "%.15s %s %s", timestr, "ulogd2",
 				(char *) res[0].u.source->u.value.ptr);
 
 		if (msglen == -1) {
