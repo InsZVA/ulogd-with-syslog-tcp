@@ -20,7 +20,7 @@ void appendUint(char** pDstStr, unsigned int n) {
 	while (n) {
         int digit = n % 10;
         *(--(*pDstStr)) = "0123456789"[digit];
-        n >>= 10;
+        n /= 10;
     }
 	*pDstStr = end;
 }
