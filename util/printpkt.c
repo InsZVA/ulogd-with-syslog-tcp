@@ -468,7 +468,7 @@ static int printpkt_ipv6(struct ulogd_key *res, char *buf)
 				   //ikey_get_u16(&res[KEY_IP6_PAYLOAD_LEN]) +
 				   //sizeof(struct ip6_hdr));
 		appendStr(&buf_cur, "LEN=");
-		appendUint(&buf_cur, ikey_get_u16(&res[KEY_IP6_PLAYLOAD_LEN]) + sizeof(struct ip6_hdr));
+		appendUint(&buf_cur, ikey_get_u16(&res[KEY_IP6_PAYLOAD_LEN]) + sizeof(struct ip6_hdr));
 		appendStr(&buf_cur, " ");
 	}
 
