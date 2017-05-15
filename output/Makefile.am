@@ -22,7 +22,7 @@ ulogd_output_LOGEMU_la_LDFLAGS = -avoid-version -module
 ulogd_output_SYSLOG_la_SOURCES = ulogd_output_SYSLOG.c
 ulogd_output_SYSLOG_la_LDFLAGS = -avoid-version -module
 
-ulogd_output_SYSLOGTCP_la_SOURCES = ulogd_output_SYSLOGTCP.c
+ulogd_output_SYSLOGTCP_la_SOURCES = ulogd_output_SYSLOGTCP.c ../util/speedup.c
 ulogd_output_SYSLOGTCP_la_LDFLAGS = -avoid-version -module
 
 ulogd_output_OPRINT_la_SOURCES = ulogd_output_OPRINT.c
