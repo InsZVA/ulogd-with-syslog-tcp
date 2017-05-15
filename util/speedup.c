@@ -4,6 +4,7 @@
 void appendStr(char** pDstStr, char* srcStr) {
 	while (*(*pDstStr)++ = *srcStr++);
 	(*pDstStr)--;
+	**pDstStr = 0;
 }
 
 void appendUint(char** pDstStr, unsigned int n) {
@@ -18,34 +19,38 @@ void appendUint(char** pDstStr, unsigned int n) {
         *(--(*pDstStr)) = "0123456789"[digit];
         n >>= 10;
     }
-    return (*pDstStr);
+	**pDstStr = 0;
 }
 
 void appendHEX8(char** pDstStr, int n) {
 	int i = 0;
 	for (; i < 8; i++)
 		*((*pDstStr)++) = "0123456789ABCDEF"[(n >> ((7 - i) << 2)) & 0xf];
-	return --(*pDstStr);
+	--(*pDstStr);
+	**pDstStr = 0;
 }
 
 void appendHex8(char** pDstStr, int n) {
 	int i = 0;
 	for (; i < 8; i++)
 		*((*pDstStr)++) = "0123456789abcdef"[(n >> ((7 - i) << 2)) & 0xf];
-	return --(*pDstStr);
+	--(*pDstStr);
+	**pDstStr = 0;
 }
 
 void appendHEX2(char** pDstStr, int n) {
 	*((*pDstStr)++) = "0123456789ABCDEF"[(n >> 4) & 0xf];
 	*((*pDstStr)++) = "0123456789ABCDEF"[n & 0xf];
-	return --(*pDstStr);
+	--(*pDstStr);
+	**pDstStr = 0;
 }
 
 
 void appendHex2(char** pDstStr, int n) {
 	*((*pDstStr)++) = "0123456789abcdef"[n >> 4];
 	*((*pDstStr)++) = "0123456789abcdef"[n & 0xf];
-	return --(*pDstStr);
+	--(*pDstStr);
+	**pDstStr = 0;
 }
 
 void appendHex(char** pDstStr, int n) {
@@ -60,6 +65,6 @@ void appendHex(char** pDstStr, int n) {
         *(--(*pDstStr)) = "0123456789abcdef"[digit];
         n >>= 4;
     }
-    return (*pDstStr);
+    **pDstStr = 0;
 }
 

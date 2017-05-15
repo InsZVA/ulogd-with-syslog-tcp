@@ -667,7 +667,7 @@ int printpkt_print(struct ulogd_key *res, char *buf)
 		appendStr(&buf_cur, " ");
 	}
 
-	strcat(buf_cur, "\n");
+	appendStr(&buf_cur, "\n");
 
 	return 0;
 }
