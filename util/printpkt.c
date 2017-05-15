@@ -248,6 +248,7 @@ static int printpkt_ipv4(struct ulogd_key *res, char *buf)
 	char *buf_cur = buf;
 	char tmp[INET_ADDRSTRLEN];
 	u_int32_t paddr;
+	char *ipstr = 0;
 
 	if (pp_is_valid(res, KEY_IP_SADDR)) {
 		//buf_cur += sprintf(buf_cur, "SRC=%s ",
@@ -359,7 +360,7 @@ static int printpkt_ipv4(struct ulogd_key *res, char *buf)
 						     //&paddr,
 						     //tmp, sizeof(tmp)));
 			appendStr(&buf_cur, "GATEWAY=");
-			char * ipstr = inet_ntop(AF_INET, &paddr, tmp, sizeof(tmp));
+			ipstr = inet_ntop(AF_INET, &paddr, tmp, sizeof(tmp));
 			appendStr(&buf_cur, ipstr);
 			break;
 		case ICMP_DEST_UNREACH:
