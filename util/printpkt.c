@@ -359,7 +359,7 @@ static int printpkt_ipv4(struct ulogd_key *res, char *buf)
 						     //&paddr,
 						     //tmp, sizeof(tmp)));
 			appendStr(&buf_cur, "GATEWAY=");
-			char * ipstr = inet_ntop(AF_INET, &paddr, tmp, sizeof(tmp))
+			char * ipstr = inet_ntop(AF_INET, &paddr, tmp, sizeof(tmp));
 			appendStr(&buf_cur, ipstr);
 			break;
 		case ICMP_DEST_UNREACH:
@@ -367,7 +367,7 @@ static int printpkt_ipv4(struct ulogd_key *res, char *buf)
 				//buf_cur += sprintf(buf_cur, "MTU=%u ", 
 						   //ikey_get_u16(&res[KEY_ICMP_FRAGMTU]));
 				appendStr(&buf_cur, "MTU=");
-				appendUint(&buf_cur, &res[KEY_ICMP_FRAGMTU]);
+				appendUint(&buf_cur, ikey_get_u16(&res[KEY_ICMP_FRAGMTU]));
 				appendStr(&buf_cur, " ");
 			}
 			break;
