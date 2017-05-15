@@ -113,16 +113,20 @@ static int _output_syslogtcp(struct ulogd_pluginstance *upi)
 		
 		if ((tmp = strchr(timestr, '\n')))
 			*tmp = '\0';
-		int msglen = sprintf(buffer, "%.15s %s %s", timestr, "ulogd2",
-				(char *) res[0].u.source->u.value.ptr);
-
+		//int msglen = sprintf(buffer, "%.15s %s %s", timestr, "ulogd2",
+				//(char *) res[0].u.source->u.value.ptr);
+		char * pbuf = buffer;
+		appendStr(&pbuf, timestr);
+		appendStr(&pbuf, "ulogd2");
+		appendStr(&pbuf, (char *) res[0].u.source->u.value.ptr);
+		/*
 		if (msglen == -1) {
 			ulogd_log(ULOGD_ERROR, "Could not create message\n");
 			return ULOGD_IRET_ERR;
 		}
-		
+		*/
 		int ret = send(li->sfd, buffer, msglen, MSG_NOSIGNAL);
-		if (ret != msglen) {
+		if (ret <= 0) {
 			ulogd_log(ULOGD_ERROR, "Failure sending message\n");
 			if (ret == -1) {
 				return ULOGD_IRET_ERR;

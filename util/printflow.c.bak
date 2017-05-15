@@ -25,7 +25,6 @@
 #include <netinet/ip_icmp.h>
 #include <ulogd/ulogd.h>
 #include <ulogd/printflow.h>
-#include <ulogd/speedup.h>
 
 enum printflow_fields {
 	PRINTFLOW_ORIG_IP_SADDR = 0,
@@ -137,16 +136,9 @@ struct ulogd_key printflow_keys[FLOW_IDS] = {
 int printflow_keys_num = sizeof(printflow_keys)/sizeof(*printflow_keys);
 
 #define pp_pri(type) PRI##type
-/*#define pp_print_u(buf_cur, label, res, x, type) \
+#define pp_print_u(buf_cur, label, res, x, type) \
 	if (pp_is_valid(res, x)) \
-		buf_cur += sprintf(buf_cur, label"=%" pp_pri(type) " ", ikey_get_##type(&res[x]));*/
-
-#define pp_print_u(pbuf_cur, label, res, x, type) \
-	if (pp_is_valid(res, x)) { \
-		appendStr(pbuf_cur, label"="); \
-		appendUint(pbuf_cur, ikey_get_##type(&res[x])); \
-		appendStr(pbuf_cur, " "); \
-	}
+		buf_cur += sprintf(buf_cur, label"=%" pp_pri(type) " ", ikey_get_##type(&res[x]));
 
 int printflow_print(struct ulogd_key *res, char *buf)
 {
@@ -155,74 +147,57 @@ int printflow_print(struct ulogd_key *res, char *buf)
 	if (pp_is_valid(res, PRINTFLOW_EVENT_TYPE)) {
 		switch (ikey_get_u32(&res[PRINTFLOW_EVENT_TYPE])) {
 			case 1:
-				//buf_cur += sprintf(buf_cur, "[NEW] ");
-				appendStr(&buf_cur, "[NEW] ");
+				buf_cur += sprintf(buf_cur, "[NEW] ");
 				break;
 			case 2:
-				//buf_cur += sprintf(buf_cur, "[UPDATE] ");
-				appendStr(&buf_cur, "[UPDATE] ");
+				buf_cur += sprintf(buf_cur, "[UPDATE] ");
 				break;
 			case 4:
-				//buf_cur += sprintf(buf_cur, "[DESTROY] ");
-				appendStr(&buf_cur, "[DESTROY]");
+				buf_cur += sprintf(buf_cur, "[DESTROY] ");
 				break;
 		}
 	}
 
-	//buf_cur += sprintf(buf_cur, "ORIG: ");
-	appendStr(&buf_cur, "ORIG: ");
+	buf_cur += sprintf(buf_cur, "ORIG: ");
 
-	if (pp_is_valid(res, PRINTFLOW_ORIG_IP_SADDR)) {
-		//buf_cur += sprintf(buf_cur,
-				   //"SRC=%s ", 
-				   //(char *) ikey_get_ptr(&res[PRINTFLOW_ORIG_IP_SADDR]));
-		appendStr(&buf_cur, "SRC=");
-		appendStr(&buf_cur, (char *) ikey_get_ptr(&res[PRINTFLOW_ORIG_IP_SADDR]));
-		appendStr(&buf_cur, " ");
-	}
+	if (pp_is_valid(res, PRINTFLOW_ORIG_IP_SADDR))
+		buf_cur += sprintf(buf_cur,
+				   "SRC=%s ", 
+				   (char *) ikey_get_ptr(&res[PRINTFLOW_ORIG_IP_SADDR]));
 
-	if (pp_is_valid(res, PRINTFLOW_ORIG_IP_DADDR)) {
-		//buf_cur += sprintf(buf_cur,
-				   //"DST=%s ",
-				   //(char *) ikey_get_ptr(&res[PRINTFLOW_ORIG_IP_DADDR]));
-		appendStr(&buf_cur, "DST=");
-		appendStr(&buf_cur, (char *) ikey_get_ptr(&res[PRINTFLOW_ORIG_IP_DADDR]));
-		appendStr(&buf_cur, " ");
-	}
+	if (pp_is_valid(res, PRINTFLOW_ORIG_IP_DADDR))
+		buf_cur += sprintf(buf_cur,
+				   "DST=%s ",
+				   (char *) ikey_get_ptr(&res[PRINTFLOW_ORIG_IP_DADDR]));
 
 	if (!pp_is_valid(res, PRINTFLOW_ORIG_IP_PROTOCOL))
 		goto orig_out;
 
 	switch (ikey_get_u8(&res[PRINTFLOW_ORIG_IP_PROTOCOL])) {
 	case IPPROTO_TCP:
-		//buf_cur += sprintf(buf_cur, "PROTO=TCP ");
-		appendStr(&buf_cur, "PROTO=TCP ");
+		buf_cur += sprintf(buf_cur, "PROTO=TCP ");
 		pp_print_u(buf_cur, "SPT", res, PRINTFLOW_ORIG_L4_SPORT, u16);
 		pp_print_u(buf_cur, "DPT", res, PRINTFLOW_ORIG_L4_DPORT, u16);
 		break;
 
 	case IPPROTO_UDP:
-		//buf_cur += sprintf(buf_cur, "PROTO=UDP ");
-		appendStr(&buf_cur, "PROTO=UDP ");
+		buf_cur += sprintf(buf_cur, "PROTO=UDP ");
 		pp_print_u(buf_cur, "SPT", res, PRINTFLOW_ORIG_L4_SPORT, u16);
 		pp_print_u(buf_cur, "DPT", res, PRINTFLOW_ORIG_L4_DPORT, u16);
 		break;
 
 	case IPPROTO_ICMP:
-		//buf_cur += sprintf(buf_cur, "PROTO=ICMP ");
-		appendStr(&buf_cur, "PROTO=ICMP ");
+		buf_cur += sprintf(buf_cur, "PROTO=ICMP ");
 		pp_print_u(buf_cur, "TYPE", res, PRINTFLOW_ICMP_CODE, u8);
 		pp_print_u(buf_cur, "CODE", res, PRINTFLOW_ICMP_TYPE, u8);
 		break;
 
 	case IPPROTO_ESP:
-		//buf_cur += sprintf(buf_cur, "PROTO=ESP ");
-		appendStr(&buf_cur, "PROTO=ESP ");
+		buf_cur += sprintf(buf_cur, "PROTO=ESP ");
 		break;
 
 	case IPPROTO_AH:
-		//buf_cur += sprintf(buf_cur, "PROTO=AH ");
-		appendStr(&buf_cur, "PROTO=AH");
+		buf_cur += sprintf(buf_cur, "PROTO=AH ");
 		break;
 
 	default:
@@ -234,60 +209,46 @@ orig_out:
 	pp_print_u(buf_cur, "PKTS", res, PRINTFLOW_ORIG_RAW_PKTCOUNT, u64);
 	pp_print_u(buf_cur, "BYTES", res, PRINTFLOW_ORIG_RAW_PKTLEN, u64);
 
-	//buf_cur += sprintf(buf_cur, ", REPLY: ");
-	appendStr(&buf_cur, ", REPLY: ");
+	buf_cur += sprintf(buf_cur, ", REPLY: ");
 
-	if (pp_is_valid(res, PRINTFLOW_REPLY_IP_SADDR)) {
-		//buf_cur += sprintf(buf_cur,
-				   //"SRC=%s ",
-				   //(char *) ikey_get_ptr(&res[PRINTFLOW_REPLY_IP_SADDR]));
-		appendStr(&buf_cur, "SRC=");
-		appendStr(&buf_cur, (char *) ikey_get_ptr(&res[PRINTFLOW_REPLY_IP_SADDR]));
-		appendStr(&buf_cur, " ");
-	}
+	if (pp_is_valid(res, PRINTFLOW_REPLY_IP_SADDR))
+		buf_cur += sprintf(buf_cur,
+				   "SRC=%s ",
+				   (char *) ikey_get_ptr(&res[PRINTFLOW_REPLY_IP_SADDR]));
 
-	if (pp_is_valid(res, PRINTFLOW_REPLY_IP_DADDR)) {
-		//buf_cur += sprintf(buf_cur,
-				   //"DST=%s ",
-				   //(char *) ikey_get_ptr(&res[PRINTFLOW_REPLY_IP_DADDR]));
-		appendStr(&buf_cur, "DST=");
-		appendStr(&buf_cur, (char *) ikey_get_ptr(&res[PRINTFLOW_REPLY_IP_DADDR]));
-		appendStr(&buf_cur, " ");
-	}
+	if (pp_is_valid(res, PRINTFLOW_REPLY_IP_DADDR))
+		buf_cur += sprintf(buf_cur,
+				   "DST=%s ",
+				   (char *) ikey_get_ptr(&res[PRINTFLOW_REPLY_IP_DADDR]));
 
 	if (!pp_is_valid(res, PRINTFLOW_REPLY_IP_PROTOCOL))
 		goto reply_out;
 
 	switch (ikey_get_u8(&res[PRINTFLOW_REPLY_IP_PROTOCOL])) {
 	case IPPROTO_TCP:
-		//buf_cur += sprintf(buf_cur, "PROTO=TCP ");
-		appendStr(&buf_cur, "PROTO=TCP ");
+		buf_cur += sprintf(buf_cur, "PROTO=TCP ");
 		pp_print_u(buf_cur, "SPT", res, PRINTFLOW_REPLY_L4_SPORT, u16);
 		pp_print_u(buf_cur, "DPT", res, PRINTFLOW_REPLY_L4_DPORT, u16);
 		break;
 
 	case IPPROTO_UDP:
-		//buf_cur += sprintf(buf_cur, "PROTO=UDP ");
-		appendStr(&buf_cur, "PROTO=UDP ");
+		buf_cur += sprintf(buf_cur, "PROTO=UDP ");
 		pp_print_u(buf_cur, "SPT", res, PRINTFLOW_REPLY_L4_SPORT, u16);
 		pp_print_u(buf_cur, "DPT", res, PRINTFLOW_REPLY_L4_DPORT, u16);
 		break;
 
 	case IPPROTO_ICMP:
-		//buf_cur += sprintf(buf_cur, "PROTO=ICMP ");
-		appendStr(&buf_cur, "PROTO=ICMP ");
+		buf_cur += sprintf(buf_cur, "PROTO=ICMP ");
 		pp_print_u(buf_cur, "TYPE", res, PRINTFLOW_ICMP_CODE, u8);
 		pp_print_u(buf_cur, "CODE", res, PRINTFLOW_ICMP_TYPE, u8);
 		break;
 
 	case IPPROTO_ESP:
-		//buf_cur += sprintf(buf_cur, "PROTO=ESP ");
-		appendStr(&buf_cur, "PROTO=ESP ");
+		buf_cur += sprintf(buf_cur, "PROTO=ESP ");
 		break;
 
 	case IPPROTO_AH:
-		//buf_cur += sprintf(buf_cur, "PROTO=AH ");
-		appendStr(&buf_cur, "PROTO=AH ");
+		buf_cur += sprintf(buf_cur, "PROTO=AH ");
 		break;
 
 	default:
@@ -299,8 +260,6 @@ reply_out:
 	pp_print_u(buf_cur, "PKTS", res, PRINTFLOW_REPLY_RAW_PKTCOUNT, u64);
 	pp_print_u(buf_cur, "BYTES", res, PRINTFLOW_REPLY_RAW_PKTLEN, u64);
 
-	//strcat(buf_cur, "\n");
-	appendStr(&buf_cur, "\n");
+	strcat(buf_cur, "\n");
 	return 0;
 }
-
