@@ -1,3 +1,6 @@
+And I rewrite some code about sprintf and get a 30%~60% performance improve.
+
+=====================================================================================================
 This repo is cloned by netfilter/ulogd. I cloned this project and add a new output module to it.
 Its name is "SYSLOGTCP" and its config is very like previous "SYSLOG". Below is an example:
 
