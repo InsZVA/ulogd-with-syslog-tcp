@@ -359,7 +359,8 @@ static int printpkt_ipv4(struct ulogd_key *res, char *buf)
 						     //&paddr,
 						     //tmp, sizeof(tmp)));
 			appendStr(&buf_cur, "GATEWAY=");
-			appendStr(&buf_cur, inet_ntop(AF_INET, &paddr, tmp, sizeof(tmp)));
+			char * ipstr = inet_ntop(AF_INET, &paddr, tmp, sizeof(tmp))
+			appendStr(&buf_cur, ipstr);
 			break;
 		case ICMP_DEST_UNREACH:
 			if (ikey_get_u8(&res[KEY_ICMP_CODE]) == ICMP_FRAG_NEEDED) {
