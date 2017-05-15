@@ -3,6 +3,7 @@
  * build something looking like a iptables LOG message
  *
  * (C) 2000-2003 by Harald Welte <laforge@gnumonks.org>
+ * (C) 2017-     by InsZVA <inszva@126.com>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License version 2 
@@ -103,92 +104,201 @@ struct ulogd_key printpkt_keys[] = {
 	[KEY_SCTP_DPORT]	= { .name = "sctp.dport", },
 };
 
+// These functions append a string to a current buffer and change the current buffer
+// point to the end. The destination is to improve the performance of Sprintf.
+static void appendStr(char** pDstStr, char* srcStr) {
+	while (*(*pDstStr)++ = *srcStr++);
+	(*pDstStr)--;
+}
+
+static void appendUint(char** pDstStr, unsigned int n) {
+	int num = n;
+	int digits = 0;
+	while (num) {
+		num /= 10;
+		(*pDstStr)++;
+	}
+	while (n) {
+        int digit = n % 10;
+        *(--(*pDstStr)) = "0123456789"[digit];
+        n >>= 10;
+    }
+    return (*pDstStr);
+}
+
+static void appendHEX8(char** pDstStr, int n) {
+	int i = 0;
+	for (; i < 8; i++)
+		*((*pDstStr)++) = "0123456789ABCDEF"[(n >> ((7 - i) << 2)) & 0xf];
+	return --(*pDstStr);
+}
+
+static void appendHex8(char** pDstStr, int n) {
+	int i = 0;
+	for (; i < 8; i++)
+		*((*pDstStr)++) = "0123456789abcdef"[(n >> ((7 - i) << 2)) & 0xf];
+	return --(*pDstStr);
+}
+
+static void appendHEX2(char** pDstStr, int n) {
+	*((*pDstStr)++) = "0123456789ABCDEF"[(n >> 4) & 0xf];
+	*((*pDstStr)++) = "0123456789ABCDEF"[n & 0xf];
+	return --(*pDstStr);
+}
+
+
+static void appendHex2(char** pDstStr, int n) {
+	*((*pDstStr)++) = "0123456789abcdef"[n >> 4];
+	*((*pDstStr)++) = "0123456789abcdef"[n & 0xf];
+	return --(*pDstStr);
+}
+
+static void appendHex(char** pDstStr, int n) {
+	int num = n;
+	int digits = 0;
+	while (num) {
+		num >>= 4;
+		(*pDstStr)++;
+	}
+	while (n) {
+        int digit = n & 0xf;
+        *(--(*pDstStr)) = "0123456789abcdef"[digit];
+        n >>= 4;
+    }
+    return (*pDstStr);
+}
+
 static int printpkt_proto(struct ulogd_key *res, char *buf, int protocol)
 {
 	char *buf_cur = buf;
 
 	switch (protocol) {
 	case IPPROTO_TCP:
-		buf_cur += sprintf(buf_cur, "PROTO=TCP ");
+		//buf_cur += sprintf(buf_cur, "PROTO=TCP ");
+		appendStr(&buf_cur, "PROTO=TCP ");
 
 		if (!pp_is_valid(res, KEY_TCP_SPORT)) {
-			buf_cur += sprintf(buf_cur, "INCOMPLETE");
+			//buf_cur += sprintf(buf_cur, "INCOMPLETE");
+			appendStr(&buf_cur, "INCOMPLETE");
 			break;
 		}
 
-		buf_cur += sprintf(buf_cur, "SPT=%u DPT=%u ",
-				   ikey_get_u16(&res[KEY_TCP_SPORT]),
-				   ikey_get_u16(&res[KEY_TCP_DPORT]));
+		//buf_cur += sprintf(buf_cur, "SPT=%u DPT=%u ",
+				   //ikey_get_u16(&res[KEY_TCP_SPORT]),
+				   //ikey_get_u16(&res[KEY_TCP_DPORT]));
+		appendStr(&buf_cur, "SPT=");
+		appendUint(&buf_cur, ikey_get_u16(&res[KEY_TCP_SPORT]));
+		appendStr(&buf_cur, " DPT=");
+		appendUint(&buf_cur, ikey_get_u16(&res[KEY_TCP_DPORT]));
+		
 		/* FIXME: config */
-		buf_cur += sprintf(buf_cur, "SEQ=%u ACK=%u ",
-				   ikey_get_u32(&res[KEY_TCP_SEQ]),
-				   ikey_get_u32(&res[KEY_TCP_ACKSEQ]));
+		//buf_cur += sprintf(buf_cur, "SEQ=%u ACK=%u ",
+				   //ikey_get_u32(&res[KEY_TCP_SEQ]),
+				   //ikey_get_u32(&res[KEY_TCP_ACKSEQ]));
+		appendStr(&buf_cur, " SEQ=");
+		appendUint(&buf_cur, ikey_get_u32(&res[KEY_TCP_SEQ]));
+		appendStr(&buf_cur, " ACK=");
+		appendUint(&buf_cur, ikey_get_u32(&res[KEY_TCP_ACKSEQ]));
 
-		buf_cur += sprintf(buf_cur, "WINDOW=%u ",
-				   ikey_get_u16(&res[KEY_TCP_WINDOW]));
+		//buf_cur += sprintf(buf_cur, "WINDOW=%u ",
+				   //ikey_get_u16(&res[KEY_TCP_WINDOW]));
+		appendStr(&buf_cur, " WINDOW=");
+		appendUint(&buf_cur, ikey_get_u16(&res[KEY_TCP_WINDOW]));
+		appendStr(&buf_cur, " ");
 
 //		buf_cur += sprintf(buf_cur, "RES=0x%02x ", 
 		
 		if (ikey_get_u8(&res[KEY_TCP_URG]))
-			buf_cur += sprintf(buf_cur, "URG ");
+			//buf_cur += sprintf(buf_cur, "URG ");
+			appendStr(&buf_cur, "URG ");
 
 		if (ikey_get_u8(&res[KEY_TCP_ACK]))
-			buf_cur += sprintf(buf_cur, "ACK ");
+			//buf_cur += sprintf(buf_cur, "ACK ");
+			appendStr(&buf_cur, "ACK ");
 
 		if (ikey_get_u8(&res[KEY_TCP_PSH]))
-			buf_cur += sprintf(buf_cur, "PSH ");
+			//buf_cur += sprintf(buf_cur, "PSH ");
+			appendStr(&buf_cur, "PSH ");
 
 		if (ikey_get_u8(&res[KEY_TCP_RST]))
-			buf_cur += sprintf(buf_cur, "RST ");
+			//buf_cur += sprintf(buf_cur, "RST ");
+			appendStr(&buf_cur, "RST ");
 
 		if (ikey_get_u8(&res[KEY_TCP_SYN]))
-			buf_cur += sprintf(buf_cur, "SYN ");
+			//buf_cur += sprintf(buf_cur, "SYN ");
+			appendStr(&buf_cur, "SYN ");
 
 		if (ikey_get_u8(&res[KEY_TCP_FIN]))
-			buf_cur += sprintf(buf_cur, "FIN ");
+			//buf_cur += sprintf(buf_cur, "FIN ");
+			appendStr(&buf_cur, "FIN ");
 
-		buf_cur += sprintf(buf_cur, "URGP=%u ",
-				   ikey_get_u16(&res[KEY_TCP_URGP]));
+		//buf_cur += sprintf(buf_cur, "URGP=%u ",
+				   //ikey_get_u16(&res[KEY_TCP_URGP]));
+		appendStr(&buf_cur, "URGP=");
+		appendUint(&buf_cur, ikey_get_u16(&res[KEY_TCP_URGP]));
+		appendStr(&buf_cur, " ");
 
 		break;
 
 	case IPPROTO_UDP:
-		buf_cur += sprintf(buf_cur, "PROTO=UDP ");
+		//buf_cur += sprintf(buf_cur, "PROTO=UDP ");
+		appendStr(&buf_cur, "PROTO=UDP ");
 
 		if (!pp_is_valid(res, KEY_UDP_SPORT)) {
-			buf_cur += sprintf(buf_cur, "INCOMPLETE");
+			//buf_cur += sprintf(buf_cur, "INCOMPLETE");
+			appendStr(&buf_cur, "INCOMPLETE");
 			break;
 		}
 
-		buf_cur += sprintf(buf_cur, "SPT=%u DPT=%u LEN=%u ", 
-				   ikey_get_u16(&res[KEY_UDP_SPORT]),
-				   ikey_get_u16(&res[KEY_UDP_DPORT]), 
-				   ikey_get_u16(&res[KEY_UDP_LEN]));
+		//buf_cur += sprintf(buf_cur, "SPT=%u DPT=%u LEN=%u ", 
+				   //ikey_get_u16(&res[KEY_UDP_SPORT]),
+				   //ikey_get_u16(&res[KEY_UDP_DPORT]), 
+				   //ikey_get_u16(&res[KEY_UDP_LEN]));
+		appendStr(&buf_cur, "SPT=");
+		appendUint(&buf_cur, ikey_get_u16(&res[KEY_UDP_SPORT]));
+		appendStr(&buf_cur, " DPT=");
+		appendUint(&buf_cur, ikey_get_u16(&res[KEY_UDP_DPORT]));
+		appendStr(&buf_cur, " LEN=");
+		appendUint(&buf_cur, ikey_get_u16(&res[KEY_UDP_LEN]));
+		appendStr(&buf_cur, " ");
 		break;
 	case IPPROTO_SCTP:
-		buf_cur += sprintf(buf_cur, "PROTO=SCTP ");
+		//buf_cur += sprintf(buf_cur, "PROTO=SCTP ");
+		appendStr(&buf_cur, "PROTO=SCTP ");
 
 		if (!pp_is_valid(res, KEY_SCTP_SPORT)) {
-			buf_cur += sprintf(buf_cur, "INCOMPLETE");
+			//buf_cur += sprintf(buf_cur, "INCOMPLETE");
+			appendStr(&buf_cur, "INCOMPLETE");
 			break;
 		}
 
-		buf_cur += sprintf(buf_cur, "SPT=%u DPT=%u ", 
-				   ikey_get_u16(&res[KEY_SCTP_SPORT]),
-				   ikey_get_u16(&res[KEY_SCTP_DPORT]));
+		//buf_cur += sprintf(buf_cur, "SPT=%u DPT=%u ", 
+				   //ikey_get_u16(&res[KEY_SCTP_SPORT]),
+				   //ikey_get_u16(&res[KEY_SCTP_DPORT]));
+		appendStr(&buf_cur, "SPT=");
+		appendUint(&buf_cur, ikey_get_u16(&res[KEY_SCTP_SPORT]));
+		appendStr(&buf_cur, " DPT=");
+		appendUint(&buf_cur, ikey_get_u16(&res[KEY_SCTP_DPORT]));
+		appendStr(&buf_cur, " ");
 		break;
 	case IPPROTO_ESP:
 	case IPPROTO_AH:
-		buf_cur += sprintf(buf_cur, "PROTO=%s ",
-				   ikey_get_u8(&res[KEY_IP_PROTOCOL]) == IPPROTO_ESP ? "ESP" : "AH");
+		//buf_cur += sprintf(buf_cur, "PROTO=%s ",
+				   //ikey_get_u8(&res[KEY_IP_PROTOCOL]) == IPPROTO_ESP ? "ESP" : "AH");
+		appendStr(&buf_cur, "PROTO=");
+		appendStr(&buf_cur, ikey_get_u8(&res[KEY_IP_PROTOCOL]) == IPPROTO_ESP ? "ESP " : "AH ");
 
 		if (!pp_is_valid(res, KEY_AHESP_SPI)) {
-			buf_cur += sprintf(buf_cur, "INCOMPLETE");
+			//buf_cur += sprintf(buf_cur, "INCOMPLETE");
+			appendStr(&buf_cur, "INCOMPLETE");
 			break;
 		}
 
-		buf_cur += sprintf(buf_cur, "SPI=0x%x ",
-				   ikey_get_u32(&res[KEY_AHESP_SPI]));
+		//buf_cur += sprintf(buf_cur, "SPI=0x%x ",
+				   //ikey_get_u32(&res[KEY_AHESP_SPI]));
+		appendStr(&buf_cur, "SPI=0x");
+		appendHex(&buf_cur, ikey_get_u32(&res[KEY_AHESP_SPI]));
+		appendStr(&buf_cur, " ");
 		break;
 	}
 
@@ -201,34 +311,60 @@ static int printpkt_ipv4(struct ulogd_key *res, char *buf)
 	char tmp[INET_ADDRSTRLEN];
 	u_int32_t paddr;
 
-	if (pp_is_valid(res, KEY_IP_SADDR))
-		buf_cur += sprintf(buf_cur, "SRC=%s ",
-				   (char *) ikey_get_ptr(&res[KEY_IP_SADDR]));
+	if (pp_is_valid(res, KEY_IP_SADDR)) {
+		//buf_cur += sprintf(buf_cur, "SRC=%s ",
+				   //(char *) ikey_get_ptr(&res[KEY_IP_SADDR]));
+		appendStr(&buf_cur, "SRC=");
+		appendStr(&buf_cur, (char*) ikey_get_ptr(&res[KEY_IP_SADDR]));
+		appendStr(&buf_cur, " ");
+	}
 
-	if (pp_is_valid(res, KEY_IP_DADDR))
-		buf_cur += sprintf(buf_cur, "DST=%s ",
-				   (char *) ikey_get_ptr(&res[KEY_IP_DADDR]));
+	if (pp_is_valid(res, KEY_IP_DADDR)) {
+		//buf_cur += sprintf(buf_cur, "DST=%s ",
+				   //(char *) ikey_get_ptr(&res[KEY_IP_DADDR]));
+		appendStr(&buf_cur, "DST=");
+		appendStr(&buf_cur, (char*) ikey_get_ptr(&res[KEY_IP_DADDR]));
+		appendStr(&buf_cur, " ");
+	}
 
 	/* FIXME: add pp_is_valid calls to remainder of file */
-	buf_cur += sprintf(buf_cur,"LEN=%u TOS=%02X PREC=0x%02X TTL=%u ID=%u ", 
-			   ikey_get_u16(&res[KEY_IP_TOTLEN]),
-			   ikey_get_u8(&res[KEY_IP_TOS]) & IPTOS_TOS_MASK, 
-			   ikey_get_u8(&res[KEY_IP_TOS]) & IPTOS_PREC_MASK,
-			   ikey_get_u8(&res[KEY_IP_TTL]),
-			   ikey_get_u16(&res[KEY_IP_ID]));
+	//buf_cur += sprintf(buf_cur,"LEN=%u TOS=%02X PREC=0x%02X TTL=%u ID=%u ", 
+			   //ikey_get_u16(&res[KEY_IP_TOTLEN]),
+			   //ikey_get_u8(&res[KEY_IP_TOS]) & IPTOS_TOS_MASK, 
+			   //ikey_get_u8(&res[KEY_IP_TOS]) & IPTOS_PREC_MASK,
+			   //ikey_get_u8(&res[KEY_IP_TTL]),
+			   //ikey_get_u16(&res[KEY_IP_ID]));
+	appendStr(&buf_cur, "LEN=");
+	appendUint(&buf_cur, ikey_get_u16(&res[KEY_IP_TOTLEN]));
+	appendStr(&buf_cur, " TOS=");
+	appendHEX2(&buf_cur, ikey_get_u8(&res[KEY_IP_TOS]) & IPTOS_TOS_MASK);
+	appendStr(&buf_cur, " PREC=0x");
+	appendHEX2(&buf_cur, ikey_get_u8(&res[KEY_IP_TOS]) & IPTOS_PREC_MASK);
+	appendStr(&buf_cur, " TTL=");
+	appendUint(&buf_cur, ikey_get_u8(&res[KEY_IP_TTL]));
+	appendStr(&buf_cur, " ID=");
+	appendUint(&buf_cur, ikey_get_u16(&res[KEY_IP_ID]));
+	appendStr(&buf_cur, " ");
 
 	if (ikey_get_u16(&res[KEY_IP_FRAGOFF]) & IP_RF) 
-		buf_cur += sprintf(buf_cur, "CE ");
+		//buf_cur += sprintf(buf_cur, "CE ");
+		appendStr(&buf_cur, "CE ");
 
 	if (ikey_get_u16(&res[KEY_IP_FRAGOFF]) & IP_DF)
-		buf_cur += sprintf(buf_cur, "DF ");
+		//buf_cur += sprintf(buf_cur, "DF ");
+		appendStr(&buf_cur, "DF ");
 
 	if (ikey_get_u16(&res[KEY_IP_FRAGOFF]) & IP_MF)
-		buf_cur += sprintf(buf_cur, "MF ");
+		//buf_cur += sprintf(buf_cur, "MF ");
+		appendStr(&buf_cur, "MF ");
 
-	if (ikey_get_u16(&res[KEY_IP_FRAGOFF]) & IP_OFFMASK)
-		buf_cur += sprintf(buf_cur, "FRAG:%u ", 
-				   ikey_get_u16(&res[KEY_IP_FRAGOFF]) & IP_OFFMASK);
+	if (ikey_get_u16(&res[KEY_IP_FRAGOFF]) & IP_OFFMASK) {
+		//buf_cur += sprintf(buf_cur, "FRAG:%u ", 
+				   //ikey_get_u16(&res[KEY_IP_FRAGOFF]) & IP_OFFMASK);
+		appendStr(&buf_cur, "FRAG:");
+		appendUint(&buf_cur, ikey_get_u16(&res[KEY_IP_FRAGOFF]) & IP_OFFMASK);
+		appendStr(&buf_cur, " ");
+	}
 
 	switch (ikey_get_u8(&res[KEY_IP_PROTOCOL])) {
 	case IPPROTO_TCP:
@@ -241,45 +377,69 @@ static int printpkt_ipv4(struct ulogd_key *res, char *buf)
 		break;
 
 	case IPPROTO_ICMP:
-		buf_cur += sprintf(buf_cur, "PROTO=ICMP ");
+		//buf_cur += sprintf(buf_cur, "PROTO=ICMP ");
+		appendStr(&buf_cur, "PROTO=ICMP ");
 
 		if (!pp_is_valid(res, KEY_ICMP_TYPE)) {
-			buf_cur += sprintf(buf_cur, "INCOMPLETE");
+			//buf_cur += sprintf(buf_cur, "INCOMPLETE");
+			appendStr(&buf_cur, "INCOMPLETE");
 			break;
 		}
 
-		buf_cur += sprintf(buf_cur, "TYPE=%u CODE=%u ",
-				   ikey_get_u8(&res[KEY_ICMP_TYPE]),
-				   ikey_get_u8(&res[KEY_ICMP_CODE]));
+		//buf_cur += sprintf(buf_cur, "TYPE=%u CODE=%u ",
+				   //ikey_get_u8(&res[KEY_ICMP_TYPE]),
+				   //ikey_get_u8(&res[KEY_ICMP_CODE]));
+		appendStr(&buf_cur, "TYPE=");
+		appendUint(&buf_cur, ikey_get_u8(&res[KEY_ICMP_TYPE]));
+		appendStr(&buf_cur, " CODE=");
+		appendUint(&buf_cur, ikey_get_u8(&res[KEY_ICMP_CODE]));
+		appendStr(&buf_cur, " ");
 
 		switch (ikey_get_u8(&res[KEY_ICMP_CODE])) {
 		case ICMP_ECHO:
 		case ICMP_ECHOREPLY:
-			buf_cur += sprintf(buf_cur, "ID=%u SEQ=%u ", 
-					   ikey_get_u16(&res[KEY_ICMP_ECHOID]),
-					   ikey_get_u16(&res[KEY_ICMP_ECHOSEQ]));
+			//buf_cur += sprintf(buf_cur, "ID=%u SEQ=%u ", 
+					   //ikey_get_u16(&res[KEY_ICMP_ECHOID]),
+					   //ikey_get_u16(&res[KEY_ICMP_ECHOSEQ]));
+			appendStr(&buf_cur, "ID=");
+			appendUint(&buf_cur, ikey_get_u16(&res[KEY_ICMP_ECHOID]));
+			appendStr(&buf_cur, " SEQ=");
+			appendUint(&buf_cur, ikey_get_u16(&res[KEY_ICMP_ECHOSEQ]));
+			appendStr(&buf_cur, " ");
 			break;
 		case ICMP_PARAMETERPROB:
-			buf_cur += sprintf(buf_cur, "PARAMETER=%u ",
-					   ikey_get_u32(&res[KEY_ICMP_GATEWAY]) >> 24);
+			//buf_cur += sprintf(buf_cur, "PARAMETER=%u ",
+					   //ikey_get_u32(&res[KEY_ICMP_GATEWAY]) >> 24);
+			appendStr(&buf_cur, "PARAMETER=");
+			appendUint(&buf_cur, ikey_get_u32(&res[KEY_ICMP_GATEWAY]) >> 24);
+			appendStr(&buf_cur, " ");
 			break;
 		case ICMP_REDIRECT:
 			paddr = ikey_get_u32(&res[KEY_ICMP_GATEWAY]),
-			buf_cur += sprintf(buf_cur, "GATEWAY=%s ",
-					   inet_ntop(AF_INET,
-						     &paddr,
-						     tmp, sizeof(tmp)));
+			//buf_cur += sprintf(buf_cur, "GATEWAY=%s ",
+					   //inet_ntop(AF_INET,
+						     //&paddr,
+						     //tmp, sizeof(tmp)));
+			appendStr(&buf_cur, "GATEWAY=");
+			appendStr(&buf_cur, inet_ntop(AF_INET, &paddr, tmp, sizeof(tmp)));
 			break;
 		case ICMP_DEST_UNREACH:
-			if (ikey_get_u8(&res[KEY_ICMP_CODE]) == ICMP_FRAG_NEEDED)
-				buf_cur += sprintf(buf_cur, "MTU=%u ", 
-						   ikey_get_u16(&res[KEY_ICMP_FRAGMTU]));
+			if (ikey_get_u8(&res[KEY_ICMP_CODE]) == ICMP_FRAG_NEEDED) {
+				//buf_cur += sprintf(buf_cur, "MTU=%u ", 
+						   //ikey_get_u16(&res[KEY_ICMP_FRAGMTU]));
+				appendStr(&buf_cur, "MTU=");
+				appendUint(&buf_cur, &res[KEY_ICMP_FRAGMTU]);
+				appendStr(&buf_cur, " ");
+			}
 			break;
 		}
 		break;
 	default:
-		buf_cur += sprintf(buf_cur, "PROTO=%u ",
-				   ikey_get_u8(&res[KEY_IP_PROTOCOL]));
+		//buf_cur += sprintf(buf_cur, "PROTO=%u ",
+				   //ikey_get_u8(&res[KEY_IP_PROTOCOL]));
+		appendStr(&buf_cur, "PROTO=");
+		appendUint(&buf_cur, ikey_get_u8(&res[KEY_IP_PROTOCOL]));
+		appendStr(&buf_cur, " ");
 	}
 
 	return buf_cur - buf;
@@ -289,35 +449,63 @@ static int printpkt_ipv6(struct ulogd_key *res, char *buf)
 {
 	char *buf_cur = buf;
 
-	if (pp_is_valid(res, KEY_IP_SADDR))
-		buf_cur += sprintf(buf_cur, "SRC=%s ",
-				   (char *) ikey_get_ptr(&res[KEY_IP_SADDR]));
+	if (pp_is_valid(res, KEY_IP_SADDR)) {
+		//buf_cur += sprintf(buf_cur, "SRC=%s ",
+				   //(char *) ikey_get_ptr(&res[KEY_IP_SADDR]));
+		appendStr(&buf_cur, "SRC=");
+		appendStr(&buf_cur, (char*) ikey_get_ptr(&res[KEY_IP_SADDR]));
+	}
 
-	if (pp_is_valid(res, KEY_IP_DADDR))
-		buf_cur += sprintf(buf_cur, "DST=%s ",
-				   (char *) ikey_get_ptr(&res[KEY_IP_DADDR]));
+	if (pp_is_valid(res, KEY_IP_DADDR)) {
+		//buf_cur += sprintf(buf_cur, "DST=%s ",
+				   //(char *) ikey_get_ptr(&res[KEY_IP_SADDR]));
+		appendStr(&buf_cur, "DST=");
+		appendStr(&buf_cur, (char*) ikey_get_ptr(&res[KEY_IP_DADDR]));
+	}
 
-	if (pp_is_valid(res, KEY_IP6_PAYLOAD_LEN))
-		buf_cur += sprintf(buf_cur, "LEN=%zu ",
-				   ikey_get_u16(&res[KEY_IP6_PAYLOAD_LEN]) +
-				   sizeof(struct ip6_hdr));
+	if (pp_is_valid(res, KEY_IP6_PAYLOAD_LEN)) {
+		//buf_cur += sprintf(buf_cur, "LEN=%zu ",
+				   //ikey_get_u16(&res[KEY_IP6_PAYLOAD_LEN]) +
+				   //sizeof(struct ip6_hdr));
+		appendStr(&buf_cur, "LEN=");
+		appendUint(&buf_cur, ikey_get_u16(&res[KEY_IP6_PLAYLOAD_LEN]) + sizeof(struct ip6_hdr));
+		appendStr(&buf_cur, " ");
+	}
 
-	if (pp_is_valid(res, KEY_IP6_PRIORITY))
-		buf_cur += sprintf(buf_cur, "TC=%u ",
-				   ikey_get_u8(&res[KEY_IP6_PRIORITY]));
+	if (pp_is_valid(res, KEY_IP6_PRIORITY)) {
+		//buf_cur += sprintf(buf_cur, "TC=%u ",
+				   //ikey_get_u8(&res[KEY_IP6_PRIORITY]));
+		appendStr(&buf_cur, "TC=");
+		appendUint(&buf_cur, ikey_get_u8(&res[KEY_IP6_PRIORITY]));
+		appendStr(&buf_cur, " ");
+	}
 
-	if (pp_is_valid(res, KEY_IP6_HOPLIMIT))
-		buf_cur += sprintf(buf_cur, "HOPLIMIT=%u ",
-				   ikey_get_u8(&res[KEY_IP6_HOPLIMIT]));
+	if (pp_is_valid(res, KEY_IP6_HOPLIMIT)) {
+		//buf_cur += sprintf(buf_cur, "HOPLIMIT=%u ",
+				   //ikey_get_u8(&res[KEY_IP6_HOPLIMIT]));
+		appendStr(&buf_cur, "HOPLIMIT=");
+		appendUint(&buf_cur, ikey_get_u8(&res[KEY_IP6_HOPLIMIT]));
+		appendStr(&buf_cur, " ");
+	}
 	
-	if (pp_is_valid(res, KEY_IP6_FLOWLABEL))
-		buf_cur += sprintf(buf_cur, "FLOWLBL=%u ",
-				   ikey_get_u32(&res[KEY_IP6_FLOWLABEL]));
+	if (pp_is_valid(res, KEY_IP6_FLOWLABEL)) {
+		//buf_cur += sprintf(buf_cur, "FLOWLBL=%u ",
+				   //ikey_get_u32(&res[KEY_IP6_FLOWLABEL]));
+		appendStr(&buf_cur, "FLOWLBL=");
+		appendUint(&buf_cur, ikey_get_u8(&res[KEY_IP6_FLOWLABEL]));
+		appendStr(&buf_cur, " ");
+	}
 
-	if (pp_is_valid(res, KEY_IP6_FRAG_OFF) && pp_is_valid(res, KEY_IP6_FRAG_ID))
-		buf_cur += sprintf(buf_cur, "FRAG: %u ID: %08x ",
-				   ikey_get_u16(&res[KEY_IP6_FRAG_OFF]),
-				   ikey_get_u32(&res[KEY_IP6_FRAG_ID]));
+	if (pp_is_valid(res, KEY_IP6_FRAG_OFF) && pp_is_valid(res, KEY_IP6_FRAG_ID)) {
+		//buf_cur += sprintf(buf_cur, "FRAG: %u ID: %08x ",
+				   //ikey_get_u16(&res[KEY_IP6_FRAG_OFF]),
+				   //ikey_get_u32(&res[KEY_IP6_FRAG_ID]));
+		appendStr(&buf_cur, "FRAG: ");
+		appendUint(&buf_cur, ikey_get_u16(&res[KEY_IP6_FRAG_OFF]));
+		appendStr(&buf_cur, " ID: ");
+		appendHex8(&buf_cur, ikey_get_u32(&res[KEY_IP6_FRAG_ID]));
+		appendStr(&buf_cur, " ");
+	}
 
 	switch (ikey_get_u8(&res[KEY_IP6_NEXTHDR])) {
 	case IPPROTO_TCP:
@@ -329,29 +517,42 @@ static int printpkt_ipv6(struct ulogd_key *res, char *buf)
 					  ikey_get_u8(&res[KEY_IP6_NEXTHDR]));
 		break;
 	case IPPROTO_ICMPV6:
-		buf_cur += sprintf(buf_cur, "PROTO=ICMPv6 ");
+		//buf_cur += sprintf(buf_cur, "PROTO=ICMPv6 ");
+		appendStr(&buf_cur, "PROTO=ICMPv6 ");
 
 		if (!pp_is_valid(res, KEY_ICMPV6_TYPE)) {
-			buf_cur += sprintf(buf_cur, "INCOMPLETE");
+			//buf_cur += sprintf(buf_cur, "INCOMPLETE");
+			appendStr(&buf_cur, "INCOMPLETE");
 			break;
 		}
 
 		if (!(pp_is_valid(res, KEY_ICMPV6_TYPE) &&
 		      pp_is_valid(res, KEY_ICMPV6_CODE))) {
-			buf_cur += sprintf(buf_cur, "TRUNCATED");
+			//buf_cur += sprintf(buf_cur, "TRUNCATED");
+			appendStr(&buf_cur, "TRUNCATED");
 			break;
 		}
 
-		buf_cur += sprintf(buf_cur, "TYPE=%u CODE=%u ",
-				   ikey_get_u8(&res[KEY_ICMPV6_TYPE]),
-				   ikey_get_u8(&res[KEY_ICMPV6_CODE]));
+		//buf_cur += sprintf(buf_cur, "TYPE=%u CODE=%u ",
+				   //ikey_get_u8(&res[KEY_ICMPV6_TYPE]),
+				   //ikey_get_u8(&res[KEY_ICMPV6_CODE]));
+		appendStr(&buf_cur, "TYPE=");
+		appendUint(&buf_cur, ikey_get_u8(&res[KEY_ICMPV6_TYPE]));
+		appendStr(&buf_cur, " CODE=");
+		appendUint(&buf_cur, ikey_get_u8(&res[KEY_ICMPV6_CODE]));
+		appendStr(&buf_cur, " ");
 
 		switch (ikey_get_u8(&res[KEY_ICMPV6_TYPE])) {
 		case ICMP6_ECHO_REQUEST:
 		case ICMP6_ECHO_REPLY:
-			buf_cur += sprintf(buf_cur, "ID=%u SEQ=%u ", 
-					   ikey_get_u16(&res[KEY_ICMPV6_ECHOID]),
-					   ikey_get_u16(&res[KEY_ICMPV6_ECHOSEQ]));
+			//buf_cur += sprintf(buf_cur, "ID=%u SEQ=%u ", 
+					   //ikey_get_u16(&res[KEY_ICMPV6_ECHOID]),
+					   //ikey_get_u16(&res[KEY_ICMPV6_ECHOSEQ]));
+			appendStr(&buf_cur, "ID=");
+			appendUint(&buf_cur, ikey_get_u16(&res[KEY_ICMPV6_ECHOID]));
+			appendStr(&buf_cur, " SEQ=");
+			appendUint(&buf_cur, ikey_get_u16(&res[KEY_ICMPV6_ECHOSEQ]));
+			appendStr(&buf_cur, " ");
 			break;
 		}
 		break;
@@ -362,42 +563,63 @@ static int printpkt_ipv6(struct ulogd_key *res, char *buf)
 
 int printpkt_arp(struct ulogd_key *res, char *buf)
 {
+	int i;
 	char *buf_cur = buf;
 	u_int16_t code = 0;
 	u_int8_t *mac;
 
-	if (pp_is_valid(res, KEY_ARP_SPA))
-		buf_cur += sprintf(buf_cur, "SRC=%s ",
-				   (char *) ikey_get_ptr(&res[KEY_ARP_SPA]));
+	if (pp_is_valid(res, KEY_ARP_SPA)) {
+		//buf_cur += sprintf(buf_cur, "SRC=%s ",
+				   //(char *) ikey_get_ptr(&res[KEY_ARP_SPA]));
+		appendStr(&buf_cur, "SRC=");
+		appendStr(&buf_cur, (char*) ikey_get_ptr(&res[KEY_ARP_SPA]));
+		appendStr(&buf_cur, " ");
+	}
 
-	if (pp_is_valid(res, KEY_ARP_TPA))
-		buf_cur += sprintf(buf_cur, "DST=%s ",
-				   (char *) ikey_get_ptr(&res[KEY_ARP_TPA]));
+	if (pp_is_valid(res, KEY_ARP_TPA)) {
+		//buf_cur += sprintf(buf_cur, "DST=%s ",
+				   //(char *) ikey_get_ptr(&res[KEY_ARP_TPA]));
+		appendStr(&buf_cur, "DST=");
+		appendStr(&buf_cur, (char *) ikey_get_ptr(&res[KEY_ARP_TPA]));
+	}
 
-	buf_cur += sprintf(buf_cur, "PROTO=ARP ");
-
+	//buf_cur += sprintf(buf_cur, "PROTO=ARP ");
+	appendStr(&buf_cur, "PROTO=ARP");
+	
 	if (pp_is_valid(res, KEY_ARP_OPCODE)) {
 		code = ikey_get_u16(&res[KEY_ARP_OPCODE]);
 		switch (code) {
 		case ARPOP_REQUEST:
-			buf_cur += sprintf(buf_cur, "REQUEST ");
+			//buf_cur += sprintf(buf_cur, "REQUEST ");
+			appendStr(&buf_cur, "REQUEST ");
 			break;
 		case ARPOP_REPLY:
-			buf_cur += sprintf(buf_cur, "REPLY ");
+			//buf_cur += sprintf(buf_cur, "REPLY ");
+			appendStr(&buf_cur, "REPLY ");
 			break;
 		case ARPOP_NAK:
-			buf_cur += sprintf(buf_cur, "NAK ");
+			//buf_cur += sprintf(buf_cur, "NAK ");
+			appendStr(&buf_cur, "NAK ");
 			break;
 		default:
-			buf_cur += sprintf(buf_cur, "CODE=%u ", code);
+			//buf_cur += sprintf(buf_cur, "CODE=%u ", code);
+			appendStr(&buf_cur, "CODE=");
+			appendUint(&buf_cur, code);
+			appendStr(&buf_cur, " ");
 		}
 
 		if (pp_is_valid(res, KEY_ARP_SHA) && (code == ARPOP_REPLY)) {
 			mac = ikey_get_ptr(&res[KEY_ARP_SHA]);
-			buf_cur += sprintf(buf_cur, "REPLY_MAC="
-					   "%02x:%02x:%02x:%02x:%02x:%02x ",
-					   mac[0], mac[1], mac[2],
-					   mac[3], mac[4], mac[5]);
+			//buf_cur += sprintf(buf_cur, "REPLY_MAC="
+					   //"%02x:%02x:%02x:%02x:%02x:%02x ",
+					   //mac[0], mac[1], mac[2],
+					   //mac[3], mac[4], mac[5]);
+			appendStr(&buf_cur, "REPLY_MAC=");
+			for (i = 0; i < 5; i++) {
+				appendHex2(&buf_cur, mac[i]);
+				appendStr(&buf_cur, ":");
+			}
+			appendHex2(&buf_cur, mac[5]);
 		}
 	}
 
@@ -420,8 +642,11 @@ int printpkt_bridge(struct ulogd_key *res, char *buf)
 		buf_cur += printpkt_arp(res, buf_cur);
 		break;
 	default:
-		buf_cur += sprintf(buf_cur, "PROTO=%u ",
-				   ikey_get_u16(&res[KEY_OOB_PROTOCOL]));
+		//buf_cur += sprintf(buf_cur, "PROTO=%u ",
+				   //ikey_get_u16(&res[KEY_OOB_PROTOCOL]));
+		appendStr(&buf_cur, "PROTO=");
+		appendUint(&buf_cur, ikey_get_u16(&res[KEY_OOB_PROTOCOL]));
+		appendStr(&buf_cur, " ");
 	}
 
 	return buf_cur - buf;
@@ -431,26 +656,40 @@ int printpkt_print(struct ulogd_key *res, char *buf)
 {
 	char *buf_cur = buf;
 
-	if (pp_is_valid(res, KEY_OOB_PREFIX))
-		buf_cur += sprintf(buf_cur, "%s ",
-				   (char *) ikey_get_ptr(&res[KEY_OOB_PREFIX]));
+	if (pp_is_valid(res, KEY_OOB_PREFIX)) {
+		//buf_cur += sprintf(buf_cur, "%s ",
+				   //(char *) ikey_get_ptr(&res[KEY_OOB_PREFIX]));
+		appendStr(&buf_cur, (char *) ikey_get_ptr(&res[KEY_OOB_PREFIX]));
+		appendStr(&buf_cur, " ");
+	}
 
-	if (pp_is_valid(res, KEY_OOB_IN) && pp_is_valid(res, KEY_OOB_OUT))
-		buf_cur += sprintf(buf_cur, "IN=%s OUT=%s ", 
-				   (char *) ikey_get_ptr(&res[KEY_OOB_IN]), 
-				   (char *) ikey_get_ptr(&res[KEY_OOB_OUT]));
+	if (pp_is_valid(res, KEY_OOB_IN) && pp_is_valid(res, KEY_OOB_OUT)) {
+		//buf_cur += sprintf(buf_cur, "IN=%s OUT=%s ", 
+				   //(char *) ikey_get_ptr(&res[KEY_OOB_IN]), 
+				   //(char *) ikey_get_ptr(&res[KEY_OOB_OUT]));
+		appendStr(&buf_cur, "IN=");
+		appendStr(&buf_cur, (char *) ikey_get_ptr(&res[KEY_OOB_IN]));
+		appendStr(&buf_cur, " OUT=");
+		appendStr(&buf_cur, (char *) ikey_get_ptr(&res[KEY_OOB_OUT]));
+		appendStr(&buf_cur, " ");
+	}
 
 	/* FIXME: configurable */
 	if (pp_is_valid(res, KEY_RAW_MAC)) {
 		unsigned char *mac = (unsigned char *) ikey_get_ptr(&res[KEY_RAW_MAC]);
 		int i, len = ikey_get_u16(&res[KEY_RAW_MACLEN]);
 
-		buf_cur += sprintf(buf_cur, "MAC=");
-		for (i = 0; i < len; i++)
-			buf_cur += sprintf(buf_cur, "%02x%c", mac[i],
-					   i == len - 1 ? ' ' : ':');
+		//buf_cur += sprintf(buf_cur, "MAC=");
+		appendStr(&buf_cur, "MAC=");
+		for (i = 0; i < len; i++) {
+			//buf_cur += sprintf(buf_cur, "%02x%c", mac[i],
+					   //i == len - 1 ? ' ' : ':');
+			appendHex2(&buf_cur, mac[i]);
+			appendStr(&buf_cur, i == len - 1 ? " " : ":");
+		}
 	} else
-		buf_cur += sprintf(buf_cur, "MAC= ");
+		//buf_cur += sprintf(buf_cur, "MAC= ");
+		appendStr(&buf_cur, "MAC= ");
 
 	switch (ikey_get_u8(&res[KEY_OOB_FAMILY])) {
 	case AF_INET:
@@ -464,17 +703,32 @@ int printpkt_print(struct ulogd_key *res, char *buf)
 		break;
 	}
 
-	if (pp_is_valid(res, KEY_OOB_UID))
-		buf_cur += sprintf(buf_cur, "UID=%u ",
-				   ikey_get_u32(&res[KEY_OOB_UID]));
-	if (pp_is_valid(res, KEY_OOB_GID))
-		buf_cur += sprintf(buf_cur, "GID=%u ",
-				   ikey_get_u32(&res[KEY_OOB_GID]));
-	if (pp_is_valid(res, KEY_OOB_MARK))
-		buf_cur += sprintf(buf_cur, "MARK=%x ",
-				   ikey_get_u32(&res[KEY_OOB_MARK]));
+	if (pp_is_valid(res, KEY_OOB_UID)) {
+		//buf_cur += sprintf(buf_cur, "UID=%u ",
+				   //ikey_get_u32(&res[KEY_OOB_UID]));
+		appendStr(&buf_cur, "UID=");
+		appendUint(&buf_cur, ikey_get_u32(&res[KEY_OOB_UID]));
+		appendStr(&buf_cur, " ");
+	}
+	
+	if (pp_is_valid(res, KEY_OOB_GID)) {
+		//buf_cur += sprintf(buf_cur, "GID=%u ",
+				   //ikey_get_u32(&res[KEY_OOB_GID]));
+		appendStr(&buf_cur, "GUID=");
+		appendUint(&buf_cur, ikey_get_u32(&res[KEY_OOB_GID]));
+		appendStr(&buf_cur, " ");
+	}
+	
+	if (pp_is_valid(res, KEY_OOB_MARK)) {
+		//buf_cur += sprintf(buf_cur, "MARK=%x ",
+				   //ikey_get_u32(&res[KEY_OOB_MARK]));
+		appendStr(&buf_cur, "MARK=");
+		appendHex(&buf_cur, ikey_get_u32(&res[KEY_OOB_MARK]));
+		appendStr(&buf_cur, " ");
+	}
 
 	strcat(buf_cur, "\n");
 
 	return 0;
 }
+
