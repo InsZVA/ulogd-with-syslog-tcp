@@ -153,7 +153,7 @@ TIME_ELAPSED(
 				return ULOGD_IRET_ERR;
 			}
 		}*/
-		_buffered_send(li, buffer, msglen, MSG_NOSIGNAL);
+		_buffered_send(li, buffer, msglen);
 );
 	}
 
