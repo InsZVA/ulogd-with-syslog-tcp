@@ -399,10 +399,8 @@ interp_packet(struct ulogd_pluginstance *upi, u_int8_t pf_family,
 	okey_set_ptr(&ret[NFLOG_KEY_RAW], ldata);
 	// 0us above
 
-TIME_ELAPSED(
 	// 10us~20us
 	ulogd_propagate_results(upi);
-);
 
 	return 0;
 }
@@ -468,10 +466,10 @@ static int nful_read_cb(int fd, unsigned int what, void *param)
 		return len;
 	}
 
-TIME_ELAPSED(
 	// handle cost 200~500us
+	// 2/3 in libnetlink_*
+	// 1/3 in interp_packet
 	nflog_handle_packet(ui->nful_h, (char *)ui->nfulog_buf, len);
-);
 
 	return 0;
 }
