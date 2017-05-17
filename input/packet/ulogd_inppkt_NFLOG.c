@@ -12,6 +12,7 @@
 #include <ulogd/ulogd.h>
 #include <libnfnetlink/libnfnetlink.h>
 #include <libnetfilter_log/libnetfilter_log.h>
+#include <ulogd/statistics.h>
 
 #ifndef NFLOG_GROUP_DEFAULT
 #define NFLOG_GROUP_DEFAULT	0
