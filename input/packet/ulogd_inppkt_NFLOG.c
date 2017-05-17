@@ -433,7 +433,6 @@ static int setnlbufsiz(struct ulogd_pluginstance *upi, int size)
 /* callback called from ulogd core when fd is readable */
 static int nful_read_cb(int fd, unsigned int what, void *param)
 {
-TIME_ELAPSED(
 
 	struct ulogd_pluginstance *upi = (struct ulogd_pluginstance *)param;
 	struct nflog_input *ui = (struct nflog_input *)upi->private;
@@ -441,6 +440,8 @@ TIME_ELAPSED(
 
 	if (!(what & ULOGD_FD_READ))
 		return 0;
+	
+TIME_ELAPSED(
 
 	/* we don't have a while loop here, since we don't want to
 	 * grab all the processing time just for us.  there might be other
