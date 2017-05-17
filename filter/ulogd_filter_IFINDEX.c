@@ -24,6 +24,7 @@
 #include <stdlib.h>
 #include <ulogd/ulogd.h>
 #include <libnfnetlink/libnfnetlink.h>
+#include <ulogd/statistics.h>
 
 static struct ulogd_key ifindex_keys[] = {
 	{ 
@@ -60,6 +61,7 @@ static struct nlif_handle *nlif_inst;
 
 static int interp_ifindex(struct ulogd_pluginstance *pi)
 {
+TIME_ELAPSED(
 	struct ulogd_key *ret = pi->output.keys;
 	struct ulogd_key *inp = pi->input.keys;
 	static char indev[IFNAMSIZ];
@@ -74,6 +76,7 @@ static int interp_ifindex(struct ulogd_pluginstance *pi)
 	if (outdev[0] == '*')
 		outdev[0] = 0;
 	okey_set_ptr(&ret[1], outdev);
+	);
 
 	return ULOGD_IRET_OK;
 }

@@ -27,6 +27,7 @@
 #include <arpa/inet.h>
 #include <ulogd/ulogd.h>
 #include <netinet/if_ether.h>
+#include <ulogd/statistics.h>
 
 #define IPADDR_LENGTH 128
 
@@ -194,6 +195,7 @@ static int interp_ip2str(struct ulogd_pluginstance *pi)
 	int i;
 	int fret;
 
+TIME_ELAPSED(
 	/* Iter on all addr fields */
 	for (i = START_KEY; i <= MAX_KEY; i++) {
 		if (pp_is_valid(inp, i)) {
@@ -204,6 +206,7 @@ static int interp_ip2str(struct ulogd_pluginstance *pi)
 				     ipstr_array[i-START_KEY]);
 		}
 	}
+);
 
 	return ULOGD_IRET_OK;
 }

@@ -103,7 +103,7 @@ static int _output_syslogtcp(struct ulogd_pluginstance *upi)
 
 	// TODO: memory?
 	char buffer[1024];
-TIME_ELAPSED(
+	
 	if (res[0].u.source->flags & ULOGD_RETF_VALID) {
 		char *timestr;
 		char *tmp;
@@ -126,7 +126,8 @@ TIME_ELAPSED(
 			ulogd_log(ULOGD_ERROR, "Could not create message\n");
 			return ULOGD_IRET_ERR;
 		}
-		
+
+		// 4~8us
 		int ret = send(li->sfd, buffer, msglen, MSG_NOSIGNAL);
 		if (ret <= 0) {
 			ulogd_log(ULOGD_ERROR, "Failure sending message\n");
@@ -135,7 +136,6 @@ TIME_ELAPSED(
 			}
 		}
 	}
-	);
 
 	return ULOGD_IRET_OK;
 }
