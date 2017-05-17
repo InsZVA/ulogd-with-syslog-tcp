@@ -21,6 +21,7 @@
 
 #include <ulogd/ulogd.h>
 #include <ulogd/printpkt.h>
+#include <ulogd/statistics.h>
 
 static struct ulogd_key printpkt_outp[] = {
 	{
@@ -36,8 +37,11 @@ static int printpkt_interp(struct ulogd_pluginstance *upi)
 	struct ulogd_key *ret = upi->output.keys;
 	static char buf[4096];
 
+TIME_ELAPSED(
 	printpkt_print(inp, buf);
 	okey_set_ptr(&ret[0], buf);
+);
+
 	return ULOGD_IRET_OK;
 }
 

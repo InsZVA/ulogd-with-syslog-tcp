@@ -12,18 +12,6 @@
 #include <ulogd/ulogd.h>
 #include <libnfnetlink/libnfnetlink.h>
 #include <libnetfilter_log/libnetfilter_log.h>
-#include <sys/time.h>
-
-#define TIME_ELAPSED(codeToTime) do{ \
-    struct timeval beginTime, endTime; \
-    gettimeofday(&beginTime, NULL); \
-    {codeToTime;} \
-    gettimeofday(&endTime, NULL); \
-    long secTime  = endTime.tv_sec - beginTime.tv_sec; \
-    long usecTime = endTime.tv_usec - beginTime.tv_usec; \
-    ulogd_log(ULOGD_NOTICE, "[%s(%d)]Elapsed Time: SecTime = %lds, UsecTime = %ldus!\n", __FILE__, __LINE__, secTime, usecTime); \
-}while(0)
-
 
 #ifndef NFLOG_GROUP_DEFAULT
 #define NFLOG_GROUP_DEFAULT	0
@@ -440,9 +428,8 @@ static int nful_read_cb(int fd, unsigned int what, void *param)
 
 	if (!(what & ULOGD_FD_READ))
 		return 0;
-	
-TIME_ELAPSED(
 
+	// Recv cost 3us
 	/* we don't have a while loop here, since we don't want to
 	 * grab all the processing time just for us.  there might be other
 	 * sockets that have pending work */
@@ -474,11 +461,9 @@ TIME_ELAPSED(
 		}
 		return len;
 	}
-);
 
-TIME_ELAPSED(
+	// handle cost 200~500us
 	nflog_handle_packet(ui->nful_h, (char *)ui->nfulog_buf, len);
-);
 
 	return 0;
 }
