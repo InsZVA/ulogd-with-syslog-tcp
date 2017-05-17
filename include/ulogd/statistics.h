@@ -1,3 +1,5 @@
+#ifndef STATISTIC_H
+#define STATISTICS_H
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/time.h>
@@ -13,4 +15,5 @@
     ulogd_log(ULOGD_NOTICE, "[%s(%d)]Elapsed Time: SecTime = %lds, UsecTime = %ldus!\n", __FILE__, __LINE__, secTime, usecTime); \
 }while(0)
 
+#endif
 

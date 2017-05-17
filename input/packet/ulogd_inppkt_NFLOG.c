@@ -12,6 +12,7 @@
 #include <ulogd/ulogd.h>
 #include <libnfnetlink/libnfnetlink.h>
 #include <libnetfilter_log/libnetfilter_log.h>
+#include <ulogd/statistics.h>
 
 #ifndef NFLOG_GROUP_DEFAULT
 #define NFLOG_GROUP_DEFAULT	0
@@ -476,6 +477,7 @@ static int msg_cb(struct nflog_g_handle *gh, struct nfgenmsg *nfmsg,
 	struct ulogd_pluginstance *npi = NULL;
 	int ret = 0;
 
+TIME_ELAPSED(
 	/* since we support the re-use of one instance in several 
 	 * different stacks, we duplicate the message to let them know */
 	llist_for_each_entry(npi, &upi->plist, plist) {
@@ -483,6 +485,7 @@ static int msg_cb(struct nflog_g_handle *gh, struct nfgenmsg *nfmsg,
 		if (ret != 0)
 			return ret;
 	}
+);
 	return interp_packet(upi, nfmsg->nfgen_family, nfa);
 }
 
