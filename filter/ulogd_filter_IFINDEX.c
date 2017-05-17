@@ -61,7 +61,7 @@ static struct nlif_handle *nlif_inst;
 
 static int interp_ifindex(struct ulogd_pluginstance *pi)
 {
-TIME_ELAPSED(
+	// 0us
 	struct ulogd_key *ret = pi->output.keys;
 	struct ulogd_key *inp = pi->input.keys;
 	static char indev[IFNAMSIZ];
@@ -76,7 +76,6 @@ TIME_ELAPSED(
 	if (outdev[0] == '*')
 		outdev[0] = 0;
 	okey_set_ptr(&ret[1], outdev);
-	);
 
 	return ULOGD_IRET_OK;
 }

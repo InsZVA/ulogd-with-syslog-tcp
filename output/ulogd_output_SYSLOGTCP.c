@@ -23,6 +23,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 #include <string.h>
 #include <sys/socket.h>
@@ -94,7 +95,22 @@ struct syslogtcp_instance {
 	char* host;
 	char* port;
 	int sfd;
+	void* buffer;
+	int pbuffer;
 };
+
+static inline void _buffer_flush(struct syslogtcp_instance * li) {
+	send(li->sfd, buffer, li->pbuffer, MSG_NOSIGNAL);
+	li->pbuffer = 0;
+}
+
+static void _buffered_send(struct syslogtcp_instance * li, void* data, int len) {
+	if (li->pbuffer > 3*1024*1024) {
+		_buffer_flush(li);
+	}
+	memcpy(li->buffer + li->pbuffer, data, len);
+	li->pbuffer += len;
+}
 
 static int _output_syslogtcp(struct ulogd_pluginstance *upi)
 {
@@ -127,14 +143,18 @@ static int _output_syslogtcp(struct ulogd_pluginstance *upi)
 			return ULOGD_IRET_ERR;
 		}
 
-		// 4~8us
+TIME_ELAPSED(
+		// 4~8us no buffer
+		/*
 		int ret = send(li->sfd, buffer, msglen, MSG_NOSIGNAL);
 		if (ret <= 0) {
 			ulogd_log(ULOGD_ERROR, "Failure sending message\n");
 			if (ret == -1) {
 				return ULOGD_IRET_ERR;
 			}
-		}
+		}*/
+		_buffered_send(li, buffer, msglen, MSG_NOSIGNAL);
+);
 	}
 
 	return ULOGD_IRET_OK;
@@ -214,9 +234,11 @@ static int syslogtcp_configure(struct ulogd_pluginstance *pi,
 static int syslogtcp_fini(struct ulogd_pluginstance *pi)
 {
 	struct syslogtcp_instance *li = (struct syslogtcp_instance *) &pi->private;
+	_buffer_flush(li);
 	if (li->sfd != -1)
 		close(li->sfd);
-
+	free(li->buffer);
+	
 	return 0;
 }
 
@@ -226,6 +248,10 @@ static int syslogtcp_start(struct ulogd_pluginstance *pi)
 	struct addrinfo hints;
     struct addrinfo *result, *rp;
 	int s;
+
+	li->pbuffer = 0;
+	// allocate 4M buffer
+	li->buffer = malloc(4*1024*1024);
 
 	li->sfd = socket(AF_INET, SOCK_STREAM, 0);
 	memset(&hints, 0, sizeof(struct addrinfo));

@@ -190,12 +190,12 @@ static int ip2str(struct ulogd_key *inp, int index, int oindex)
 
 static int interp_ip2str(struct ulogd_pluginstance *pi)
 {
+	// 1us
 	struct ulogd_key *ret = pi->output.keys;
 	struct ulogd_key *inp = pi->input.keys;
 	int i;
 	int fret;
 
-TIME_ELAPSED(
 	/* Iter on all addr fields */
 	for (i = START_KEY; i <= MAX_KEY; i++) {
 		if (pp_is_valid(inp, i)) {
@@ -206,7 +206,6 @@ TIME_ELAPSED(
 				     ipstr_array[i-START_KEY]);
 		}
 	}
-);
 
 	return ULOGD_IRET_OK;
 }

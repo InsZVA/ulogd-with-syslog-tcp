@@ -938,7 +938,6 @@ static int _interp_bridge(struct ulogd_pluginstance *pi, u_int32_t len)
 
 static int _interp_pkt(struct ulogd_pluginstance *pi)
 {
-TIME_ELAPSED(
 	u_int32_t len = ikey_get_u32(&pi->input.keys[INKEY_RAW_PCKTLEN]);
 	u_int8_t family = ikey_get_u8(&pi->input.keys[INKEY_OOB_FAMILY]);
 	struct ulogd_key *ret = pi->output.keys;
@@ -954,7 +953,6 @@ TIME_ELAPSED(
 	case AF_BRIDGE:
 		return _interp_bridge(pi, len);
 	}
-	);
 	return ULOGD_IRET_OK;
 }
 
