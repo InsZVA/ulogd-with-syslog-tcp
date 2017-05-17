@@ -261,6 +261,7 @@ static int syslogtcp_start(struct ulogd_pluginstance *pi)
 	struct addrinfo hints;
     struct addrinfo *result, *rp;
 	int s;
+	char* tmp;
 
 	if (gethostname(hostname, sizeof(hostname)) < 0) {
 		ulogd_log(ULOGD_FATAL, "can't gethostname(): %s\n",
