@@ -100,7 +100,7 @@ struct syslogtcp_instance {
 };
 
 static inline void _buffer_flush(struct syslogtcp_instance * li) {
-	send(li->sfd, buffer, li->pbuffer, MSG_NOSIGNAL);
+	send(li->sfd, li->buffer, li->pbuffer, MSG_NOSIGNAL);
 	li->pbuffer = 0;
 }
 
