@@ -52,6 +52,15 @@
 #define SYSLOG_PORT_DEFAULT "514"
 #endif
 
+
+#ifndef HOST_NAME_MAX
+#warning this libc does not define HOST_NAME_MAX
+#define HOST_NAME_MAX	(255+1)
+#endif
+
+static char hostname[HOST_NAME_MAX+1];
+
+
 static struct ulogd_key syslogtcp_inp[] = {
 	{
 		.type = ULOGD_RET_STRING,
@@ -136,7 +145,8 @@ static int _output_syslogtcp(struct ulogd_pluginstance *upi)
 				//(char *) res[0].u.source->u.value.ptr);
 		char * pbuf = buffer;
 		appendStr(&pbuf, timestr);
-		appendStr(&pbuf, "ulogd2");
+		appendStr(&pbuf, " ");
+		appendStr(&pbuf, hostname);
 		appendStr(&pbuf, (char *) res[0].u.source->u.value.ptr);
 		int msglen = pbuf - buffer;
 		
@@ -251,6 +261,16 @@ static int syslogtcp_start(struct ulogd_pluginstance *pi)
 	struct addrinfo hints;
     struct addrinfo *result, *rp;
 	int s;
+
+	if (gethostname(hostname, sizeof(hostname)) < 0) {
+		ulogd_log(ULOGD_FATAL, "can't gethostname(): %s\n",
+			  strerror(errno));
+		return -EINVAL;
+	}
+
+	/* truncate hostname */
+	if ((tmp = strchr(hostname, '.')))
+		*tmp = '\0';
 
 	li->pbuffer = 0;
 	li->nsend = 0;
