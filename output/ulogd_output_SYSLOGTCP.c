@@ -33,6 +33,7 @@
 #include <syslog.h>
 #include <ulogd/ulogd.h>
 #include <ulogd/conffile.h>
+#include <ulogd/statistics.h>
 
 #ifndef SYSLOG_FACILITY_DEFAULT
 #define SYSLOG_FACILITY_DEFAULT	"LOG_KERN"
@@ -102,7 +103,7 @@ static int _output_syslogtcp(struct ulogd_pluginstance *upi)
 
 	// TODO: memory?
 	char buffer[1024];
-
+TIME_ELAPSED(
 	if (res[0].u.source->flags & ULOGD_RETF_VALID) {
 		char *timestr;
 		char *tmp;
@@ -134,6 +135,7 @@ static int _output_syslogtcp(struct ulogd_pluginstance *upi)
 			}
 		}
 	}
+	);
 
 	return ULOGD_IRET_OK;
 }
