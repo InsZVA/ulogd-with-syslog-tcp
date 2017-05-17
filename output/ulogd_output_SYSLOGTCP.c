@@ -143,8 +143,8 @@ static int _output_syslogtcp(struct ulogd_pluginstance *upi)
 			return ULOGD_IRET_ERR;
 		}
 
-TIME_ELAPSED(
 		// 4~8us no buffer
+		// 0us buffered
 		/*
 		int ret = send(li->sfd, buffer, msglen, MSG_NOSIGNAL);
 		if (ret <= 0) {
@@ -154,7 +154,7 @@ TIME_ELAPSED(
 			}
 		}*/
 		_buffered_send(li, buffer, msglen);
-);
+		
 	}
 
 	return ULOGD_IRET_OK;
