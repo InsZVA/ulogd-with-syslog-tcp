@@ -97,6 +97,7 @@ struct syslogtcp_instance {
 	int sfd;
 	void* buffer;
 	int pbuffer;
+	int nsend;
 };
 
 static inline void _buffer_flush(struct syslogtcp_instance * li) {
@@ -105,6 +106,7 @@ static inline void _buffer_flush(struct syslogtcp_instance * li) {
 }
 
 static void _buffered_send(struct syslogtcp_instance * li, void* data, int len) {
+	li->nsend++;
 	if (li->pbuffer > 3*1024*1024) {
 		_buffer_flush(li);
 	}
@@ -237,6 +239,7 @@ static int syslogtcp_fini(struct ulogd_pluginstance *pi)
 	_buffer_flush(li);
 	if (li->sfd != -1)
 		close(li->sfd);
+	ulogd_log(ULOGD_NOTICE, "syslog_tcp total send:%d\n", li->nsend);
 	free(li->buffer);
 	
 	return 0;
@@ -250,6 +253,7 @@ static int syslogtcp_start(struct ulogd_pluginstance *pi)
 	int s;
 
 	li->pbuffer = 0;
+	li->nsend = 0;
 	// allocate 4M buffer
 	li->buffer = malloc(4*1024*1024);
 
