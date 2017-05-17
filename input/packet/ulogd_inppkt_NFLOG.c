@@ -319,7 +319,6 @@ static inline int
 interp_packet(struct ulogd_pluginstance *upi, u_int8_t pf_family,
 	      struct nflog_data *ldata)
 {
-TIME_ELAPSED(
 	struct ulogd_key *ret = upi->output.keys;
 
 	struct nfulnl_msg_packet_hdr *ph = nflog_get_msg_packet_hdr(ldata);
@@ -398,11 +397,13 @@ TIME_ELAPSED(
 		okey_set_u32(&ret[NFLOG_KEY_OOB_SEQ_GLOBAL], seq);
 
 	okey_set_ptr(&ret[NFLOG_KEY_RAW], ldata);
-);
+	// 0us above
 
 TIME_ELAPSED(
+	// 10us~20us
 	ulogd_propagate_results(upi);
 );
+
 	return 0;
 }
 
@@ -467,8 +468,10 @@ static int nful_read_cb(int fd, unsigned int what, void *param)
 		return len;
 	}
 
+TIME_ELAPSED(
 	// handle cost 200~500us
 	nflog_handle_packet(ui->nful_h, (char *)ui->nfulog_buf, len);
+);
 
 	return 0;
 }
