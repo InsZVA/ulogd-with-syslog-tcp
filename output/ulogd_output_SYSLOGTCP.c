@@ -99,12 +99,14 @@ static struct config_keyset syslogtcp_kset = {
 		.key = "buffer",
 		.type = CONFIG_TYPE_INT,
 		.options = CONFIG_OPT_NONE,
-		.u = { .value = 4 * 1024 * 1024 },
+		.u = { .value = 4 * 1024 * 1024 }
+		},
 		{
 		.key = "flush",
 		.type = CONFIG_TYPE_INT,
 		.options = CONFIG_OPT_NONE,
 		.u = { .value = 3 * 1024 * 1024 }
+		}
 		
 	},
 };
