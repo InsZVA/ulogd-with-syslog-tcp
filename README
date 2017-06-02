@@ -1,5 +1,5 @@
 我增加了ULOGD直接使用TCP发送日志到SYSLOGNG的逻辑，这部分的模块名称为SYSLOGTCP，使用方法与以前SYSLOG基本一致，
-在这个项目的根目录下还有一个ulogd.conf是新功能的示例，注意其中使用了这样的栈：
+在这个项目的根目录下还有一个ulogd_example.conf是新功能的示例，注意其中使用了这样的栈：
 
 ```
 stack=log3:NFLOG,base1:BASE,ifi1:IFINDEX,ip2str1:IP2STR,print1:PRINTPKT,sys1:SYSLOG
