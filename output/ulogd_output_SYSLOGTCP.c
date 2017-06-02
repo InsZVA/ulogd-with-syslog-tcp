@@ -202,7 +202,7 @@ static int syslogtcp_configure(struct ulogd_pluginstance *pi,
 	li->host = pi->config_kset->ces[2].u.string;
 	li->port = pi->config_kset->ces[3].u.string;
 	li->buffer_size = pi->config_kset->ces[4].u.value;
-	li->buffer_flush_size = pi->config_kset->[5].u.value;
+	li->buffer_flush_size = pi->config_kset->ces[5].u.value;
 
 	if (!strcmp(facility, "LOG_DAEMON"))
 		syslog_facility = LOG_DAEMON;
