@@ -95,6 +95,17 @@ static struct config_keyset syslogtcp_kset = {
 		.options = CONFIG_OPT_NONE,
 		.u = { .string = SYSLOG_PORT_DEFAULT }
 		},
+		{
+		.key = "buffer",
+		.type = CONFIG_TYPE_INT,
+		.options = CONFIG_OPT_NONE,
+		.u = { .value = 4 * 1024 * 1024 },
+		{
+		.key = "flush",
+		.type = CONFIG_TYPE_INT,
+		.options = CONFIG_OPT_NONE,
+		.u = { .value = 3 * 1024 * 1024 }
+		
 	},
 };
 
@@ -103,6 +114,8 @@ struct syslogtcp_instance {
 	int syslog_facility;
 	char* host;
 	char* port;
+	int buffer_size;
+	int buffer_flush_size;
 	int sfd;
 	void* buffer;
 	int pbuffer;
@@ -116,7 +129,7 @@ static inline void _buffer_flush(struct syslogtcp_instance * li) {
 
 static void _buffered_send(struct syslogtcp_instance * li, void* data, int len) {
 	li->nsend++;
-	if (li->pbuffer > 3*1024*1024) {
+	if (li->pbuffer > li->buffer_flush_size) {
 		_buffer_flush(li);
 	}
 	memcpy(li->buffer + li->pbuffer, data, len);
@@ -186,6 +199,8 @@ static int syslogtcp_configure(struct ulogd_pluginstance *pi,
 	level = pi->config_kset->ces[1].u.string;
 	li->host = pi->config_kset->ces[2].u.string;
 	li->port = pi->config_kset->ces[3].u.string;
+	li->buffer_size = pi->config_kset->ces[4].u.value;
+	li->buffer_flush_size = pi->config_kset->[5].u.value;
 
 	if (!strcmp(facility, "LOG_DAEMON"))
 		syslog_facility = LOG_DAEMON;
@@ -276,7 +291,7 @@ static int syslogtcp_start(struct ulogd_pluginstance *pi)
 	li->pbuffer = 0;
 	li->nsend = 0;
 	// allocate 4M buffer
-	li->buffer = malloc(4*1024*1024);
+	li->buffer = malloc(li->buffer_size);
 
 	li->sfd = socket(AF_INET, SOCK_STREAM, 0);
 	memset(&hints, 0, sizeof(struct addrinfo));
