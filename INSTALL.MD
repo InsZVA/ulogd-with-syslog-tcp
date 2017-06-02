@@ -1,5 +1,5 @@
 ```
-yum install automake autoconf libtool mysql-devel -y
+yum install automake autoconf libtool mysql-devel libnfnetlink -y
 
 git clone https://github.com/InsZVA/ulogd-with-syslog-tcp
 cd ulogd-with-syslog-tcp
