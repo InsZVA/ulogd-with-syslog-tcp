@@ -1,16 +1,38 @@
-And I rewrite some code about sprintf and get a 30%~60% performance improve.
+我增加了ULOGD直接使用TCP发送日志到SYSLOGNG的逻辑，这部分的模块名称为SYSLOGTCP，使用方法与以前SYSLOG基本一致，
+在这个项目的根目录下还有一个ulogd.conf是新功能的示例，注意其中使用了这样的栈：
 
-=====================================================================================================
-This repo is cloned by netfilter/ulogd. I cloned this project and add a new output module to it.
-Its name is "SYSLOGTCP" and its config is very like previous "SYSLOG". Below is an example:
+```
+stack=log3:NFLOG,base1:BASE,ifi1:IFINDEX,ip2str1:IP2STR,print1:PRINTPKT,sys1:SYSLOG
+```
 
+以及SYSLOGTCP模块的配置说明如下：
+
+```
 [sys1]
 facility=LOG_LOCAL3
-host="192.168.29.246"
+host="100.127.112.2"
 port="514"
+buffer=4096000
+flush=3560000
+```
+
+facility是消息的facility标识，host是目标服务器的地址，port是目标服务器的端口号，这三个参数是必须的。
+buffer是TCP发送前的缓冲大小，flush是触发TCP发送的大小。
+
+我重写了部分字符串处理的逻辑，不再使用标准库提供的Sprintf，提高了一些计算性能。
+
+安装这个库要使用编译安装的方法，方法在根目录下的INSTALL.MD中有说明。
+
+在这个过程中遇到了一些问题，现总结如下（基于上线机器所采用的2.6内核）：
+
+1. 操作系统的mpstat top 以及 sar工具对CPU的检测非常不准确，在ULOGD处理少量数据的时候，可以观测到很明显的soft%，
+软中断CPU消耗，但是当ULOGD处理的数据量达到一定规模，soft%就会突然消失，甚至还会出现软中断等于0，user%也没满。
+
+2. ULOGD从netlink中获取数据，使用了recv(fd, buff, size, opt)这样的操作(具体见input/packet/ulogd_inppkt_NFLOG.c#443行)，
+我传给了他一个很大的buffer，目的是让他一次从netlink中多取一些buffer出来，结果发现即使netlink自己的缓冲区满了，也不会填充
+满我传给他的buffer。
 
 
-***     Added by InsZVA@2017-0508     ***
 =====================================================================================================
 
 
