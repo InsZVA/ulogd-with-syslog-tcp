@@ -69,7 +69,7 @@ static struct ulogd_key syslogtcp_inp[] = {
 };
 
 static struct config_keyset syslogtcp_kset = { 
-	.num_ces = 4,
+	.num_ces = 6,
 	.ces = {
 		{
 		.key = "facility", 
